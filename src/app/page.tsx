@@ -1,18 +1,81 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
+import { LanguageContext } from './gateway-mapping/page';
+import { useRouter } from 'next/navigation';
+import SearchIcon from '@mui/icons-material/Search';
+import SettingsIcon from '@mui/icons-material/Settings';
+import { useContext } from 'react';
+import { Card, CardContent, Typography } from '@mui/material';
 
 export default function Home() {
+  const router = useRouter();
+  const { lang } = useContext(LanguageContext) || { lang: 'en' };
+
+  const handleNavigate = (path: string) => {
+    router.push(path);
+  };
+
   return (
     <div className={styles.page}>
       <main className={styles.main}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
+        <div className={styles.description}>
+          <p>
+            {lang === 'zh' ? 'Gateway管理系统' : 'Gateway Management System'}
+          </p>
+        </div>
+
+        <div className={styles.center}>
+          <Image
+            className={styles.logo}
+            src="/next.svg"
+            alt="Next.js Logo"
+            width={180}
+            height={37}
+            priority
+          />
+        </div>
+
+        <div className={styles.grid}>
+          <Card
+            className={styles.card}
+            onClick={() => handleNavigate('/gateway-mapping')}
+            sx={{ cursor: 'pointer', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}
+          >
+            <CardContent>
+              <Typography variant="h5" component="div" gutterBottom>
+                <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                {lang === 'zh' ? 'Gateway配置' : 'Gateway Configuration'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {lang === 'zh' 
+                  ? '创建和管理Gateway路由配置，包括后端服务器、请求头、Cookies等设置'
+                  : 'Create and manage Gateway route configurations, including backend servers, headers, cookies, and more'
+                }
+              </Typography>
+            </CardContent>
+          </Card>
+
+          <Card
+            className={styles.card}
+            onClick={() => handleNavigate('/gateway-search')}
+            sx={{ cursor: 'pointer', '&:hover': { transform: 'translateY(-2px)', boxShadow: 3 } }}
+          >
+            <CardContent>
+              <Typography variant="h5" component="div" gutterBottom>
+                <SearchIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
+                {lang === 'zh' ? '配置搜索' : 'Configuration Search'}
+              </Typography>
+              <Typography variant="body2" color="text.secondary">
+                {lang === 'zh' 
+                  ? '快速搜索和查看现有的Gateway配置，支持按域名、应用、状态等过滤'
+                  : 'Quickly search and view existing Gateway configurations with filtering by domain, application, status, etc.'
+                }
+              </Typography>
+            </CardContent>
+          </Card>
+        </div>
+
         <ol>
           <li>
             Get started by editing <code>src/app/page.tsx</code>.

@@ -1,3 +1,4 @@
+"use client";
 import { useFormData } from "../page";
 import { useContext } from "react";
 import { FormConfigContext } from "../page";

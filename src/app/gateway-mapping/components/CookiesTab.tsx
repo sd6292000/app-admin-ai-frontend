@@ -1,3 +1,4 @@
+"use client";
 import { useState, useContext } from "react";
 import { Box, TextField, MenuItem, Typography, Checkbox, FormControlLabel, Paper, Divider, IconButton, Alert } from "@mui/material";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
