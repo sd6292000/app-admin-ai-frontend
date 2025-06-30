@@ -1,5 +1,5 @@
 "use client";
-import { useState, useContext, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { 
   Box, 
   TextField, 
@@ -27,7 +27,7 @@ import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import InfoIcon from '@mui/icons-material/Info';
-import { useFormData, FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 
 const protocols = [
   { label: "HTTP", value: "HTTP" },
@@ -202,13 +202,16 @@ function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any
       case 'warning':
         return <WarningIcon color="warning" fontSize="small" />;
       default:
-        return undefined;
+        return <InfoIcon color="action" fontSize="small" />;
     }
   };
 
   // 获取状态颜色
   const getStatusColor = (status: DnsCheckStatus | 'idle' | 'testing' | 'success' | 'error') => {
     switch (status) {
+      case 'checking':
+      case 'testing':
+        return 'info';
       case 'success':
         return 'success';
       case 'error':
@@ -221,152 +224,175 @@ function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any
   };
 
   return (
-    <Box>
-      {/* Hostname with DNS detection */}
-      <Box sx={{ mb: 2 }}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <TextField 
-            label="Hostname" 
-            fullWidth 
-            required 
-            value={backend.hostname} 
-            onChange={e => handleChange(idx, "hostname", e.target.value)}
-            error={dnsCheckResult.status === 'error'}
-            helperText={dnsCheckResult.message || "输入服务器主机名"}
-          />
-          <Tooltip title="检测DNS解析">
-            <IconButton 
+    <Box sx={{ p: 2, border: '1px solid', borderColor: 'grey.300', borderRadius: 2, mb: 2 }}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+        <Typography variant="subtitle1" fontWeight={600}>
+          后端服务器 #{idx + 1}
+        </Typography>
+        <Box display="flex" gap={1}>
+          <Tooltip title="DNS检测">
+            <IconButton
+              size="small"
               onClick={() => checkDns(backend.hostname)}
-              disabled={!backend.hostname.trim() || dnsCheckResult.status === 'checking'}
-              color="primary"
+              disabled={!backend.hostname}
             >
               <NetworkCheckIcon />
             </IconButton>
           </Tooltip>
-          {dnsCheckResult.status !== 'idle' && (
-            <Chip
-              icon={getStatusIcon(dnsCheckResult.status)}
-              label={dnsCheckResult.status === 'checking' ? '检测中' : 
-                     dnsCheckResult.status === 'success' ? 'DNS正常' :
-                     dnsCheckResult.status === 'warning' ? 'DNS警告' : 'DNS错误'}
-              color={getStatusColor(dnsCheckResult.status) as any}
+          <Tooltip title="连接测试">
+            <IconButton
               size="small"
-              onClick={() => setShowDnsDetails(true)}
-              sx={{ cursor: 'pointer' }}
+              onClick={() => testConnection(backend.hostname, backend.port, backend.protocol)}
+              disabled={!backend.hostname || !backend.port || !backend.protocol}
+            >
+              <CheckCircleIcon />
+            </IconButton>
+          </Tooltip>
+        </Box>
+      </Box>
+
+      <Box display="flex" gap={2} flexWrap="wrap">
+        <TextField
+          label="Hostname *"
+          required
+          value={backend.hostname || ""}
+          onChange={e => handleChange(idx, "hostname", e.target.value)}
+          sx={{ minWidth: 200, flex: 1 }}
+        />
+        <TextField
+          label="Port *"
+          required
+          type="number"
+          value={backend.port || ""}
+          onChange={e => handleChange(idx, "port", e.target.value)}
+          sx={{ width: 100 }}
+        />
+        <TextField
+          select
+          label="Protocol *"
+          required
+          value={backend.protocol || ""}
+          onChange={e => handleChange(idx, "protocol", e.target.value)}
+          sx={{ width: 120 }}
+        >
+          {protocols.map(protocol => (
+            <MenuItem key={protocol.value} value={protocol.value}>
+              {protocol.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Region"
+          value={backend.region || ""}
+          onChange={handleRegionChange}
+          sx={{ width: 120 }}
+        >
+          {regions.map(region => (
+            <MenuItem key={region.value} value={region.value}>
+              {region.label}
+            </MenuItem>
+          ))}
+        </TextField>
+        <TextField
+          select
+          label="Data Center"
+          value={backend.dataCenter || ""}
+          onChange={e => handleChange(idx, "dataCenter", e.target.value)}
+          disabled={!backend.region}
+          sx={{ width: 120 }}
+        >
+          {(dataCenterOptions[backend.region] || []).map(dc => (
+            <MenuItem key={dc.value} value={dc.value}>
+              {dc.label}
+            </MenuItem>
+          ))}
+        </TextField>
+      </Box>
+
+      <Box display="flex" gap={2} mt={2} flexWrap="wrap">
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={backend.enabled !== false}
+              onChange={e => handleChange(idx, "enabled", e.target.checked)}
             />
-          )}
-        </Box>
-      </Box>
-
-      {/* Port and Protocol */}
-      <Box display="flex" gap={2} sx={{ mb: 2 }}>
-        <Box flex={1}>
-          <Box display="flex" alignItems="center" gap={1}>
-            <TextField 
-              label="Port" 
-              type="number" 
-              fullWidth 
-              required 
-              inputProps={{ min: 0, max: 65535 }}
-              helperText="0-65535"
-              value={backend.port}
-              onChange={e => handleChange(idx, "port", e.target.value)}
+          }
+          label="启用"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={backend.rewriteHost || false}
+              onChange={e => handleChange(idx, "rewriteHost", e.target.checked)}
             />
-            <Tooltip title="测试连接">
-              <IconButton 
-                onClick={() => testConnection(backend.hostname, backend.port, backend.protocol)}
-                disabled={!backend.hostname.trim() || !backend.port.trim() || !backend.protocol || connectionTestResult.status === 'testing'}
-                color="primary"
-              >
-                <NetworkCheckIcon />
-              </IconButton>
-            </Tooltip>
-            {connectionTestResult.status !== 'idle' && (
-              <Chip
-                icon={getStatusIcon(connectionTestResult.status)}
-                label={connectionTestResult.status === 'testing' ? '测试中' : 
-                       connectionTestResult.status === 'success' ? '连接正常' : '连接失败'}
-                color={getStatusColor(connectionTestResult.status) as any}
-                size="small"
-              />
-            )}
-          </Box>
-        </Box>
-        <Box flex={1}>
-          <TextField select label="Protocol" fullWidth required value={backend.protocol} onChange={e => handleChange(idx, "protocol", e.target.value)}>
-            {protocols.map((item) => (
-              <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-            ))}
-          </TextField>
-        </Box>
+          }
+          label="重写Host"
+        />
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={backend.webProxyEnabled || false}
+              onChange={e => handleChange(idx, "webProxyEnabled", e.target.checked)}
+            />
+          }
+          label="Web Proxy"
+        />
       </Box>
 
-      {/* Region and Data Center */}
-      <Box display="flex" gap={2} sx={{ mb: 2 }}>
-        <Box flex={1}>
-          <TextField select label="Region" fullWidth required value={backend.region} onChange={handleRegionChange}>
-            {regions.map((item) => (
-              <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-            ))}
-          </TextField>
+      {/* DNS检测结果 */}
+      {dnsCheckResult.status !== 'idle' && (
+        <Box mt={2}>
+          <Chip
+            icon={getStatusIcon(dnsCheckResult.status)}
+            label={dnsCheckResult.message}
+            color={getStatusColor(dnsCheckResult.status) as any}
+            variant="outlined"
+            onClick={() => setShowDnsDetails(true)}
+            sx={{ cursor: 'pointer' }}
+          />
         </Box>
-        <Box flex={1}>
-          <TextField select label="Data Center" fullWidth required value={backend.dataCenter} onChange={e => handleChange(idx, "dataCenter", e.target.value)}>
-            {(dataCenterOptions[backend.region] || []).map((item) => (
-              <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-            ))}
-          </TextField>
-        </Box>
-      </Box>
+      )}
 
-      {/* DNS检测详情对话框 */}
-      <Dialog open={showDnsDetails} onClose={() => setShowDnsDetails(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>
-          <Box display="flex" alignItems="center" gap={1}>
-            <NetworkCheckIcon color="primary" />
-            DNS检测详情
-          </Box>
-        </DialogTitle>
+      {/* 连接测试结果 */}
+      {connectionTestResult.status !== 'idle' && (
+        <Box mt={1}>
+          <Chip
+            icon={getStatusIcon(connectionTestResult.status)}
+            label={connectionTestResult.message}
+            color={getStatusColor(connectionTestResult.status) as any}
+            variant="outlined"
+          />
+        </Box>
+      )}
+
+      {/* DNS详情对话框 */}
+      <Dialog open={showDnsDetails} onClose={() => setShowDnsDetails(false)}>
+        <DialogTitle>DNS检测详情</DialogTitle>
         <DialogContent>
-          <Box>
-            <Typography variant="subtitle2" gutterBottom>检测结果:</Typography>
-            <Alert severity={dnsCheckResult.status === 'success' ? 'success' : 
-                           dnsCheckResult.status === 'warning' ? 'warning' : 'error'} sx={{ mb: 2 }}>
-              {dnsCheckResult.message}
-            </Alert>
-            
-            {dnsCheckResult.ipAddresses && dnsCheckResult.ipAddresses.length > 0 && (
-              <Box>
-                <Typography variant="subtitle2" gutterBottom>解析到的IP地址:</Typography>
-                <Box display="flex" flexWrap="wrap" gap={1}>
-                  {dnsCheckResult.ipAddresses.map((ip, index) => (
-                    <Chip key={index} label={ip} variant="outlined" />
-                  ))}
-                </Box>
-              </Box>
-            )}
-            
-            {dnsCheckResult.responseTime && (
-              <Box mt={2}>
-                <Typography variant="subtitle2" gutterBottom>响应时间:</Typography>
-                <Typography>{dnsCheckResult.responseTime}ms</Typography>
-              </Box>
-            )}
-            
-            {dnsCheckResult.error && (
-              <Box mt={2}>
-                <Typography variant="subtitle2" gutterBottom>错误详情:</Typography>
-                <Typography color="error">{dnsCheckResult.error}</Typography>
-              </Box>
-            )}
-          </Box>
+          <Typography variant="body2" gutterBottom>
+            主机名: {backend.hostname}
+          </Typography>
+          {dnsCheckResult.ipAddresses && dnsCheckResult.ipAddresses.length > 0 && (
+            <Box>
+              <Typography variant="body2" gutterBottom>
+                解析到的IP地址:
+              </Typography>
+              {dnsCheckResult.ipAddresses.map((ip, index) => (
+                <Typography key={index} variant="body2" color="text.secondary">
+                  {ip}
+                </Typography>
+              ))}
+            </Box>
+          )}
+          {dnsCheckResult.responseTime && (
+            <Typography variant="body2" color="text.secondary">
+              响应时间: {dnsCheckResult.responseTime}ms
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowDnsDetails(false)}>关闭</Button>
-          <Button onClick={() => {
-            checkDns(backend.hostname);
-            setShowDnsDetails(false);
-          }} variant="contained">重新检测</Button>
         </DialogActions>
       </Dialog>
     </Box>
@@ -375,8 +401,7 @@ function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any
 
 export default function BackendsTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
-  if (!formConfig) return null;
+  const formConfig = useFormConfig();
   const { labels, options, validation } = formConfig.backends || {};
 
   // 初始化backends数组
@@ -406,61 +431,46 @@ export default function BackendsTab() {
   };
 
   return (
-    <Box>
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Box display="flex" alignItems="center" gap={1}>
-          <InfoIcon />
-          <Typography variant="body2">
-            系统会自动检测hostname的DNS解析状态，您也可以手动点击检测按钮进行DNS检测和连接测试。
-          </Typography>
-        </Box>
-      </Alert>
-
+    <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+      <Typography variant="h6" fontWeight={600} gutterBottom>
+        {labels?.title || "Backend Servers"}
+      </Typography>
+      <Divider sx={{ mb: 2 }} />
+      
       {backends.map((backend, idx) => (
-        <Paper key={idx} elevation={3} sx={{ p: 4, borderRadius: 3, mb: 4, position: 'relative' }}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="subtitle1" fontWeight={700}>Backend #{idx + 1}</Typography>
-            {backends.length > 1 && (
-              <IconButton color="error" onClick={() => handleRemove(idx)} sx={{ position: 'absolute', top: 12, right: 12 }}>
+        <Box key={idx}>
+          <BackendForm
+            idx={idx}
+            backend={backend}
+            handleChange={handleChange}
+          />
+          {backends.length > 1 && (
+            <Box display="flex" justifyContent="flex-end" mb={2}>
+              <IconButton
+                color="error"
+                onClick={() => handleRemove(idx)}
+                size="small"
+              >
                 <DeleteIcon />
               </IconButton>
-            )}
-          </Box>
-          <Divider sx={{ mb: 3 }} />
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom>基本信息</Typography>
-          <BackendForm idx={idx} backend={backend} handleChange={handleChange} />
-          <Box mt={3} mb={2}>
-            <FormControlLabel
-              control={<Checkbox checked={!!backend.enabled} onChange={e => handleChange(idx, "enabled", e.target.checked)} />}
-              label={<Typography fontWeight={600}>Enable</Typography>}
-              sx={{ mr: 4 }}
-            />
-            <FormControlLabel
-              control={<Checkbox checked={!!backend.rewriteHost} onChange={e => handleChange(idx, "rewriteHost", e.target.checked)} />}
-              label={<Typography fontWeight={600}>Rewrite Host</Typography>}
-            />
-          </Box>
-          <Divider sx={{ my: 3 }} />
-          <Typography variant="subtitle2" fontWeight={600} gutterBottom>代理设置</Typography>
-          <Box bgcolor="grey.100" p={3} borderRadius={2} mb={2}>
-            <FormControlLabel
-              control={<Checkbox checked={!!backend.webProxyEnabled} onChange={e => handleChange(idx, "webProxyEnabled", e.target.checked)} />}
-              label={<Typography fontWeight={600}>Enable Web Proxy</Typography>}
-            />
-            {backend.webProxyEnabled && (
-              <Box display="flex" flexWrap="wrap" gap={2} mt={1}>
-                <TextField label="Proxy Host" sx={{ flex: 1, minWidth: 200 }} value={backend.proxyHost} onChange={e => handleChange(idx, "proxyHost", e.target.value)} />
-                <TextField label="Proxy Port" type="number" sx={{ flex: 1, minWidth: 200 }} value={backend.proxyPort} onChange={e => handleChange(idx, "proxyPort", e.target.value)} />
-                <TextField label="Proxy Username" sx={{ flex: 1, minWidth: 200 }} value={backend.proxyUsername} onChange={e => handleChange(idx, "proxyUsername", e.target.value)} />
-                <TextField label="Proxy Password" type="password" sx={{ flex: 1, minWidth: 200 }} value={backend.proxyPassword} onChange={e => handleChange(idx, "proxyPassword", e.target.value)} />
-              </Box>
-            )}
-          </Box>
-        </Paper>
+            </Box>
+          )}
+        </Box>
       ))}
-      <Box display="flex" justifyContent="flex-end">
-        <IconButton color="primary" onClick={handleAdd} sx={{ fontSize: 32 }}><AddCircleOutlineIcon fontSize="inherit" /></IconButton>
+      
+      <Box display="flex" justifyContent="center" mt={2}>
+        <Button
+          variant="outlined"
+          startIcon={<AddCircleOutlineIcon />}
+          onClick={handleAdd}
+        >
+          {labels?.addBackend || "Add Backend Server"}
+        </Button>
       </Box>
-    </Box>
+      
+      <Alert severity="info" sx={{ mt: 2 }}>
+        {labels?.tip || "Configure one or more backend servers for load balancing."}
+      </Alert>
+    </Paper>
   );
 } 

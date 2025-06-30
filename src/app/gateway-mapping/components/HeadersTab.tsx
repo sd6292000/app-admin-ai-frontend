@@ -1,5 +1,5 @@
 "use client";
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { 
   Box, 
   TextField, 
@@ -27,7 +27,7 @@ import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import SecurityIcon from '@mui/icons-material/Security';
-import { useFormData, FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 
 // CSP策略预设
 const CSP_PRESETS = {
@@ -71,7 +71,7 @@ const CSP_VALUES = [
 
 export default function HeadersTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
+  const formConfig = useFormConfig();
   if (!formConfig) return null;
   const { labels } = formConfig.headers || {};
 

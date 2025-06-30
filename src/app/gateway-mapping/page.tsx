@@ -14,6 +14,7 @@ import CookieIcon from '@mui/icons-material/Cookie';
 import HttpIcon from '@mui/icons-material/Http';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SecurityIcon from '@mui/icons-material/Security';
+import { FormDataContext, FormConfigContext, FormDataType } from "./contexts/FormContext";
 
 const tabLabels = [
   { label: "Basic", icon: <AssignmentIcon fontSize="small" /> },
@@ -24,34 +25,242 @@ const tabLabels = [
   { label: "Limiters", icon: <SecurityIcon fontSize="small" /> },
 ];
 
-// 表单配置和语言 context
-export const FormConfigContext = createContext<any>(null);
+// 语言 context
 export const LanguageContext = createContext<any>(null);
 
-export type FormDataType = {
-  basic: any;
-  backends: any[];
-  cookies: any;
-  headers: any;
-  responseBodyDecorator: any[];
-  limiters: any;
-};
-
-export const FormDataContext = createContext<{
-  formData: FormDataType;
-  setFormData: React.Dispatch<React.SetStateAction<FormDataType>>;
-} | null>(null);
-
-export const useFormData = () => {
-  const ctx = useContext(FormDataContext);
-  if (!ctx) throw new Error("FormDataContext not found");
-  return ctx;
+// 默认的formConfig
+const defaultFormConfig = {
+  basic: {
+    labels: {
+      domain: 'Domain',
+      requestPathPattern: 'Request Path Pattern',
+      backendForwardPath: 'Backend Forward Path',
+      cmdbProject: 'CMDB Project',
+      uniqueTip: 'Domain + Path Pattern must be unique.'
+    },
+    options: {
+      cmdbProject: [
+        { label: 'Project A', value: 'a' },
+        { label: 'Project B', value: 'b' }
+      ]
+    }
+  },
+  backends: {
+    labels: {
+      hostname: 'Hostname',
+      port: 'Port',
+      protocol: 'Protocol',
+      region: 'Region',
+      dataCenter: 'Data Center'
+    },
+    options: {
+      protocol: [
+        { label: 'HTTP', value: 'HTTP' },
+        { label: 'HTTPS', value: 'HTTPS' }
+      ],
+      region: [
+        { label: 'EU', value: 'EU' },
+        { label: 'AS', value: 'AS' },
+        { label: 'AM', value: 'AM' }
+      ],
+      dataCenter: {
+        EU: [
+          { label: 'WK', value: 'WK' },
+          { label: 'RH', value: 'RH' }
+        ],
+        AS: [
+          { label: 'SDC', value: 'SDC' },
+          { label: 'TDC', value: 'TDC' }
+        ],
+        AM: [
+          { label: 'PSC', value: 'PSC' }
+        ]
+      }
+    },
+    validation: {
+      port: { min: 0, max: 65535 }
+    }
+  },
+  cookies: {
+    labels: {
+      globalStrategy: 'Global Cookie Strategy',
+      exception: 'Exceptions',
+      cookieName: 'Cookie Name',
+      strategy: 'Strategy',
+      rfcTip: 'Cookie name must conform to RFC standard.'
+    },
+    options: {
+      strategy: [
+        { label: 'Passthrough', value: 'passthrough' },
+        { label: 'Persist', value: 'persist' }
+      ]
+    }
+  },
+  headers: {
+    labels: {
+      request: 'Request Headers',
+      response: 'Response Headers',
+      name: 'Name',
+      value: 'Value',
+      override: 'Override',
+      addRequest: 'Add Request Header',
+      addResponse: 'Add Response Header',
+      remove: 'Remove'
+    }
+  },
+  responseBodyDecorator: {
+    labels: {
+      errorPage: 'Error Page Mapping',
+      statusCode: 'Status Code',
+      pagePath: 'Page Path',
+      add: 'Add Mapping'
+    }
+  },
+  limiters: {
+    labels: {
+      ipRule: 'IP/Subnet Rules',
+      ipOrCidr: 'IP or CIDR',
+      mode: 'Mode',
+      allow: 'Allow',
+      deny: 'Deny',
+      addRule: 'Add Rule',
+      maxConcurrent: 'Max Concurrent',
+      maxPerMinute: 'Max Calls Per Minute',
+      allowedMethods: 'Allowed Methods',
+      atLeastOne: 'At least one limiter must be set.'
+    },
+    options: {
+      mode: [
+        { label: 'Allow', value: 'allow' },
+        { label: 'Deny', value: 'deny' }
+      ],
+      methods: [
+        { label: 'GET', value: 'GET' },
+        { label: 'POST', value: 'POST' },
+        { label: 'PUT', value: 'PUT' },
+        { label: 'DELETE', value: 'DELETE' }
+      ]
+    }
+  }
 };
 
 export default function GatewayMappingPage() {
   const [tab, setTab] = useState(0);
   const [lang, setLang] = useState("en");
-  const [formConfig, setFormConfig] = useState<any>(null);
+  const [formConfig, setFormConfig] = useState<any>({
+    basic: {
+      labels: {
+        domain: 'Domain',
+        requestPathPattern: 'Request Path Pattern',
+        backendForwardPath: 'Backend Forward Path',
+        cmdbProject: 'CMDB Project',
+        uniqueTip: 'Domain + Path Pattern must be unique.'
+      },
+      options: {
+        cmdbProject: [
+          { label: 'Project A', value: 'a' },
+          { label: 'Project B', value: 'b' }
+        ]
+      }
+    },
+    backends: {
+      labels: {
+        hostname: 'Hostname',
+        port: 'Port',
+        protocol: 'Protocol',
+        region: 'Region',
+        dataCenter: 'Data Center'
+      },
+      options: {
+        protocol: [
+          { label: 'HTTP', value: 'HTTP' },
+          { label: 'HTTPS', value: 'HTTPS' }
+        ],
+        region: [
+          { label: 'EU', value: 'EU' },
+          { label: 'AS', value: 'AS' },
+          { label: 'AM', value: 'AM' }
+        ],
+        dataCenter: {
+          EU: [
+            { label: 'WK', value: 'WK' },
+            { label: 'RH', value: 'RH' }
+          ],
+          AS: [
+            { label: 'SDC', value: 'SDC' },
+            { label: 'TDC', value: 'TDC' }
+          ],
+          AM: [
+            { label: 'PSC', value: 'PSC' }
+          ]
+        }
+      },
+      validation: {
+        port: { min: 0, max: 65535 }
+      }
+    },
+    cookies: {
+      labels: {
+        globalStrategy: 'Global Cookie Strategy',
+        exception: 'Exceptions',
+        cookieName: 'Cookie Name',
+        strategy: 'Strategy',
+        rfcTip: 'Cookie name must conform to RFC standard.'
+      },
+      options: {
+        strategy: [
+          { label: 'Passthrough', value: 'passthrough' },
+          { label: 'Persist', value: 'persist' }
+        ]
+      }
+    },
+    headers: {
+      labels: {
+        request: 'Request Headers',
+        response: 'Response Headers',
+        name: 'Name',
+        value: 'Value',
+        override: 'Override',
+        addRequest: 'Add Request Header',
+        addResponse: 'Add Response Header',
+        remove: 'Remove'
+      }
+    },
+    responseBodyDecorator: {
+      labels: {
+        errorPage: 'Error Page Mapping',
+        statusCode: 'Status Code',
+        pagePath: 'Page Path',
+        add: 'Add Mapping'
+      }
+    },
+    limiters: {
+      labels: {
+        ipRule: 'IP/Subnet Rules',
+        ipOrCidr: 'IP or CIDR',
+        mode: 'Mode',
+        allow: 'Allow',
+        deny: 'Deny',
+        addRule: 'Add Rule',
+        maxConcurrent: 'Max Concurrent',
+        maxPerMinute: 'Max Calls Per Minute',
+        allowedMethods: 'Allowed Methods',
+        atLeastOne: 'At least one limiter must be set.'
+      },
+      options: {
+        mode: [
+          { label: 'Allow', value: 'allow' },
+          { label: 'Deny', value: 'deny' }
+        ],
+        methods: [
+          { label: 'GET', value: 'GET' },
+          { label: 'POST', value: 'POST' },
+          { label: 'PUT', value: 'PUT' },
+          { label: 'DELETE', value: 'DELETE' }
+        ]
+      }
+    }
+  });
   const [openDialog, setOpenDialog] = useState(false);
   const [formData, setFormData] = useState<FormDataType>({
     basic: {},
@@ -67,7 +276,14 @@ export default function GatewayMappingPage() {
   useEffect(() => {
     fetch(`/api/form-config?lang=${lang}`)
       .then(res => res.json())
-      .then(setFormConfig);
+      .then(data => {
+        // 合并API返回的数据和默认配置
+        setFormConfig((prevConfig: any) => ({ ...prevConfig, ...data }));
+      })
+      .catch(error => {
+        console.error('Failed to load form config:', error);
+        // 如果API失败，保持默认配置不变
+      });
   }, [lang]);
 
   const handleChange = (_: any, newValue: number) => setTab(newValue);

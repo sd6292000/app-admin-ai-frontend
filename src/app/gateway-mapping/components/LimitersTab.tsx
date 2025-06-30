@@ -3,7 +3,7 @@ import { useState, useContext } from "react";
 import { Box, TextField, Typography, MenuItem, Checkbox, FormControlLabel, Paper, Divider, IconButton, Alert } from "@mui/material";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { useFormData, FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 
 const methods = ["GET", "POST", "PUT", "DELETE"];
 const modeOptions = [
@@ -23,7 +23,7 @@ function isValidIPv4OrCIDR(value: string) {
 
 export default function LimitersTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
+  const formConfig = useFormConfig();
   if (!formConfig) return null;
   const { labels, options } = formConfig.limiters || {};
 

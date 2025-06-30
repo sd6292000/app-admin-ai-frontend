@@ -3,7 +3,7 @@ import { useState, useContext } from "react";
 import { Box, TextField, Typography, Paper, Divider, IconButton, Alert } from "@mui/material";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { useFormData, FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 
 function isValidPagePath(value: string) {
   // 允许 /xxx 或 http(s)://xxx
@@ -14,7 +14,7 @@ function isValidPagePath(value: string) {
 
 export default function ResponseBodyDecoratorTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
+  const formConfig = useFormConfig();
   if (!formConfig) return null;
   const { labels } = formConfig.responseBodyDecorator || {};
 

@@ -1,13 +1,11 @@
 "use client";
-import { useFormData } from "../page";
-import { useContext } from "react";
-import { FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 import { Box, TextField, MenuItem, Typography, Divider, Grid, Paper, Alert } from "@mui/material";
 
 export default function BasicTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
-  if (!formConfig) return null;
+  const formConfig = useFormConfig();
+  
   const { labels, options } = formConfig.basic || {};
 
   const handleChange = (field: string, value: any) => {

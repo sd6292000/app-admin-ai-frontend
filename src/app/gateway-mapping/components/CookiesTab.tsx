@@ -3,7 +3,7 @@ import { useState, useContext } from "react";
 import { Box, TextField, MenuItem, Typography, Checkbox, FormControlLabel, Paper, Divider, IconButton, Alert } from "@mui/material";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { useFormData, FormConfigContext } from "../page";
+import { useFormData, useFormConfig } from "../contexts/FormContext";
 
 const strategies = [
   { label: "Passthrough", value: "passthrough" },
@@ -15,7 +15,7 @@ const rfc6265CookieName = /^[!#$%&'*+\-.^_`|~0-9a-zA-Z]+$/;
 
 export default function CookiesTab() {
   const { formData, setFormData } = useFormData();
-  const formConfig = useContext(FormConfigContext);
+  const formConfig = useFormConfig();
   if (!formConfig) return null;
   const { labels, options } = formConfig.cookies || {};
 
