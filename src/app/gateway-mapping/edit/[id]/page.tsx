@@ -77,12 +77,28 @@ export default function GatewayEditPage() {
   const [hasChanges, setHasChanges] = useState(false);
   const [unsavedChangesDialog, setUnsavedChangesDialog] = useState(false);
   const [formData, setFormData] = useState<FormDataType>({
-    basic: {},
+    basic: {
+      domain: '',
+      requestPathPattern: '',
+      backendForwardPath: '',
+      cmdbProject: ''
+    },
     backends: [],
-    cookies: {},
-    headers: {},
+    cookies: {
+      globalStrategy: 'passthrough',
+      exceptions: []
+    },
+    headers: {
+      request: [],
+      response: []
+    },
     responseBodyDecorator: [],
-    limiters: {},
+    limiters: {
+      ipRules: [],
+      maxConcurrent: '',
+      maxPerMinute: '',
+      allowedMethods: []
+    }
   });
   const [formConfig, setFormConfig] = useState<any>({
     basic: {
@@ -316,16 +332,17 @@ export default function GatewayEditPage() {
   }
 
   const tabs = [
-    { label: lang === 'zh' ? '基本信息' : 'Basic', component: BasicTab },
-    { label: lang === 'zh' ? '后端服务器' : 'Backends', component: BackendsTab },
-    { label: lang === 'zh' ? '请求头' : 'Headers', component: HeadersTab },
-    { label: lang === 'zh' ? 'Cookies' : 'Cookies', component: CookiesTab },
-    { label: lang === 'zh' ? '限制器' : 'Limiters', component: LimitersTab },
-    { label: lang === 'zh' ? '响应体装饰器' : 'Response Body Decorator', component: ResponseBodyDecoratorTab },
-    { label: lang === 'zh' ? '版本管理' : 'Version Management', component: VersionManagementTab }
+    { label: lang === 'zh' ? '基本信息' : 'Basic', component: BasicTab, props: { isEditMode: true } },
+    { label: lang === 'zh' ? '后端服务器' : 'Backends', component: BackendsTab, props: {} },
+    { label: lang === 'zh' ? '请求头' : 'Headers', component: HeadersTab, props: {} },
+    { label: lang === 'zh' ? 'Cookies' : 'Cookies', component: CookiesTab, props: {} },
+    { label: lang === 'zh' ? '限制器' : 'Limiters', component: LimitersTab, props: {} },
+    { label: lang === 'zh' ? '响应体装饰器' : 'Response Body Decorator', component: ResponseBodyDecoratorTab, props: {} },
+    { label: lang === 'zh' ? '版本管理' : 'Version Management', component: VersionManagementTab, props: { formData, onConfigChange: handleConfigChange } }
   ];
 
   const ActiveTabComponent = tabs[activeTab].component;
+  const activeTabProps = tabs[activeTab].props;
 
   return (
     <FormConfigContext.Provider value={formConfig}>
@@ -391,11 +408,7 @@ export default function GatewayEditPage() {
 
           {/* 标签页内容 */}
           <Paper elevation={2}>
-            {activeTab === 6 ? (
-              <VersionManagementTab formData={formData} onConfigChange={handleConfigChange} />
-            ) : (
-              <ActiveTabComponent />
-            )}
+            <ActiveTabComponent {...activeTabProps} />
           </Paper>
 
           {/* 未保存更改确认对话框 */}

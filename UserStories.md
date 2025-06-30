@@ -70,13 +70,15 @@
 - 实现配置编辑页面，复用现有的Tab组件。
 - 页面加载时自动填充现有配置数据。
 - 支持所有Tab的编辑功能（Basic、Backends、Headers、Cookies、Limiters等）。
+- **编辑限制：** Domain和Request Path Pattern字段在编辑模式下不可修改，确保配置的唯一性。
 - 检测配置变更，显示未保存更改提示。
 - 保存时验证所有必填字段和格式。
 - 支持取消编辑，有未保存更改时显示确认对话框。
 - 保存成功后跳转到查看页面。
 
 **验收标准**：
-- 编辑功能完整，所有字段可修改。
+- 编辑功能完整，除Domain和Request Path Pattern外的所有字段可修改。
+- Domain和Request Path Pattern字段在编辑模式下显示为禁用状态。
 - 变更检测准确，提示及时。
 - 保存验证严格，错误提示清晰。
 - 用户体验流畅，操作安全。
@@ -139,11 +141,13 @@
 - CMDB项目下拉选项从API获取。
 - 表单项与全局formData context同步。
 - 只读用户禁用所有输入项。
+- **编辑模式限制：** 在编辑模式下，Domain和Request Path Pattern字段不可修改，确保配置唯一性。
 
 **验收标准**：
 - BasicTab所有字段可填写、可选，校验生效。
 - 校验不通过时有明确提示。
 - 只读用户无法编辑。
+- 编辑模式下Domain和Request Path Pattern字段显示为禁用状态。
 
 ---
 
