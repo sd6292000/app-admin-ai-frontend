@@ -1,562 +1,467 @@
-# User Stories for Gateway Admin Frontend & Backend
+# 网关管理系统 - User Stories (3周开发计划)
 
-## 说明
-- 本文档将需求拆解为适合3位初级开发工程师的User Stories，每个故事建议用时2-3天。
-- 包含前端、后端、权限、搜索、数据管理等全流程。
-- 每个故事包含目标、主要任务、验收标准。
+## 项目概述
+基于现有前端功能，为3人团队制定3周开发计划，实现网关管理系统的核心功能。
 
 ---
 
-## Story 1：基础页面与多语言切换
-**目标**：实现主页面结构、Tab分区、右上角语言切换、全局表单配置API对接。
+## 1. 数据库设计与Spring JPA实现
 
-- 实现主页面AppBar（Logo、项目名、语言切换下拉框）。
-- 实现多Tab分区（Basic、Backends、Cookies、Headers、Response Body Decorator、Limiters）。
-- 实现全局Context，支持表单配置和语言切换。
-- 页面加载时自动请求REST API获取所有表单配置和多语言label。
-- 切换语言后所有label和选项即时切换。
+### 前端 User Stories
 
-**验收标准**：
-- 页面结构美观，切换Tab无滚动。
-- 切换语言后所有表单label/选项即时切换。
-- 所有表单项的label、选项、校验规则均来自API。
+#### US-F-001: 数据库配置管理界面
+**中文版本：**
+作为系统管理员，我希望能够通过Web界面查看和管理数据库配置，包括数据表结构、测试数据和扩展配置，以便于系统维护和扩展。
 
----
+**English Version:**
+As a system administrator, I want to view and manage database configurations through a web interface, including table structures, test data, and extension configurations, so that I can maintain and extend the system.
 
-## Story 2：Gateway配置搜索页面
-**目标**：实现Gateway配置的快速搜索和查看功能，支持多条件筛选和权限控制。
+**验收标准：**
+- 提供数据库表结构可视化展示
+- 支持测试数据的导入导出
+- 提供扩展配置的管理界面
+- 支持配置变更的实时预览
 
-- 实现Gateway配置搜索页面，展示所有配置的列表视图。
-- 支持按关键字搜索（域名、路径、应用名称、标签等）。
-- 支持按状态（生效/未生效/草稿）、应用名称等条件筛选。
-- 搜索结果包含：生效网址、应用名称、状态、后端服务器、修改者、修改时间。
-- 每个配置项支持查看、编辑、删除操作（根据用户权限）。
-- 点击查看/编辑按钮跳转到对应的详情/编辑页面。
-- 支持刷新数据、删除确认对话框。
-- 空状态提示和加载状态显示。
+**技术要点：**
+- 使用React组件展示数据库结构
+- 实现配置的JSON编辑器
+- 集成数据验证和预览功能
 
-**验收标准**：
-- 搜索功能响应快速，结果准确。
-- 筛选条件工作正常，URL参数同步。
-- 权限控制严格，无权限操作被禁用。
-- 页面跳转流畅，用户体验良好。
+#### US-F-002: 扩展配置管理
+**中文版本：**
+作为开发者，我希望能够通过界面管理系统的扩展配置，当某项值更改后可以使用额外的配置选项，以便于系统的灵活扩展。
 
----
+**English Version:**
+As a developer, I want to manage system extension configurations through the interface, so that when a value changes, additional configuration options can be used for flexible system extension.
 
-## Story 3：Gateway配置查看页面
-**目标**：实现Gateway配置的详细查看功能，以只读方式展示所有配置信息。
+**验收标准：**
+- 支持动态配置项的添加和删除
+- 提供配置项之间的依赖关系管理
+- 实现配置变更的联动更新
+- 支持配置模板的保存和复用
 
-- 实现配置查看页面，以标签页形式展示不同类别的配置信息。
-- 基本信息标签页：显示域名、路径、应用、状态、标签等。
-- 后端服务器标签页：显示所有后端服务器的详细信息。
-- 请求头标签页：显示所有请求头配置。
-- Cookies标签页：显示所有Cookie配置。
-- 限制器标签页：显示所有访问限制配置。
-- 历史记录标签页：显示创建和修改历史。
-- 页面顶部显示编辑和删除按钮（根据权限）。
-- 支持返回搜索页面的导航。
+### 后端 User Stories
 
-**验收标准**：
-- 所有配置信息清晰展示，分类明确。
-- 只读模式，无编辑功能。
-- 权限控制正确，按钮状态准确。
-- 页面布局美观，信息层次清晰。
+#### US-B-001: 数据库表结构设计
+**中文版本：**
+作为后端开发者，我需要设计符合前端功能需求的数据库表结构，包括网关配置、版本管理、限流规则等核心表，以支持系统的完整功能。
 
----
+**English Version:**
+As a backend developer, I need to design database table structures that meet frontend functional requirements, including gateway configurations, version management, rate limiting rules, and other core tables to support complete system functionality.
 
-## Story 4：Gateway配置编辑页面
-**目标**：实现Gateway配置的编辑功能，基于现有配置进行修改。
+**验收标准：**
+- 设计完整的ER图和数据表关系
+- 实现Spring JPA实体类
+- 支持数据迁移和版本控制
+- 提供完整的CRUD操作API
 
-- 实现配置编辑页面，复用现有的Tab组件。
-- 页面加载时自动填充现有配置数据。
-- 支持所有Tab的编辑功能（Basic、Backends、Headers、Cookies、Limiters等）。
-- **编辑限制：** Domain和Request Path Pattern字段在编辑模式下不可修改，确保配置的唯一性。
-- 检测配置变更，显示未保存更改提示。
-- 保存时验证所有必填字段和格式。
-- 支持取消编辑，有未保存更改时显示确认对话框。
-- 保存成功后跳转到查看页面。
+**技术要点：**
+- 使用Spring Boot 3 + JPA
+- 实现数据库迁移脚本
+- 设计合理的索引和约束
 
-**验收标准**：
-- 编辑功能完整，除Domain和Request Path Pattern外的所有字段可修改。
-- Domain和Request Path Pattern字段在编辑模式下显示为禁用状态。
-- 变更检测准确，提示及时。
-- 保存验证严格，错误提示清晰。
-- 用户体验流畅，操作安全。
+#### US-B-002: 测试数据生成
+**中文版本：**
+作为测试工程师，我需要系统能够自动生成符合业务场景的测试数据，包括各种配置组合和边界情况，以便于功能测试和性能验证。
+
+**English Version:**
+As a test engineer, I need the system to automatically generate test data that conforms to business scenarios, including various configuration combinations and edge cases, for functional testing and performance validation.
+
+**验收标准：**
+- 生成覆盖所有功能模块的测试数据
+- 支持测试数据的批量导入导出
+- 提供数据清理和重置功能
+- 实现测试环境的隔离
 
 ---
 
-## Story 5：数据列表与搜索筛选
-**目标**：实现网关映射配置的数据列表页，支持关键字、域名等多条件搜索与筛选。
+## 2. Disable功能实现
 
-- 前端实现数据列表页，展示所有网关映射配置（分页）。
-- 支持按关键字、域名、项目名等字段快速搜索。
-- 支持按状态（启用/禁用）、所属项目等筛选。
-- 搜索/筛选条件与URL参数联动，便于分享和回溯。
-- 后端API支持分页、模糊搜索、条件筛选。
+### 前端 User Stories
 
-**验收标准**：
-- 用户可通过关键字、域名等快速定位目标配置。
-- 切换筛选条件、翻页、刷新后结果一致。
-- 后端API返回数据准确，性能良好。
+#### US-F-003: 配置状态管理界面
+**中文版本：**
+作为管理员，我希望能够通过界面轻松启用或禁用已生成的配置记录，禁用后的配置仍然能被搜索发现但不会生效，以便于配置的灵活管理。
 
----
+**English Version:**
+As an administrator, I want to easily enable or disable generated configuration records through the interface. Disabled configurations can still be discovered through search but won't take effect, for flexible configuration management.
 
-## Story 6：权限与访问控制（前端）
-**目标**：根据用户权限动态控制页面可见性、可编辑性、可删除性。
+**验收标准：**
+- 在配置列表中显示启用/禁用状态
+- 提供批量启用/禁用操作
+- 实现状态变更的确认对话框
+- 支持状态变更历史记录
 
-- 登录后根据用户角色/权限（如admin、editor、viewer）动态渲染页面内容。
-- 只读用户仅能查看数据，不能编辑/删除/新建。
-- 编辑用户可修改、保存数据，但不能删除。
-- 管理员可新建、编辑、删除所有数据。
-- 无权限用户访问受限页面时显示无权限提示。
-- 前端所有操作按钮（编辑、删除、保存）根据权限动态显示/禁用。
+**技术要点：**
+- 使用Material-UI的Switch组件
+- 实现状态变更的乐观更新
+- 添加操作确认和撤销功能
 
-**验收标准**：
-- 不同权限用户登录后页面内容、操作按钮完全不同。
-- 无权限操作时有明确提示。
+#### US-F-004: 禁用配置搜索展示
+**中文版本：**
+作为用户，我希望在搜索配置时能够看到所有配置（包括已禁用的），并清楚标识其状态，以便于了解配置的完整历史。
 
----
+**English Version:**
+As a user, I want to see all configurations (including disabled ones) when searching, with clear status identification, so I can understand the complete configuration history.
 
-## Story 7：权限与访问控制（后端）
-**目标**：后端API根据用户身份和权限校验所有操作，防止越权。
+**验收标准：**
+- 搜索结果包含禁用配置
+- 使用视觉标识区分配置状态
+- 提供按状态筛选的功能
+- 显示配置的最后修改时间
 
-- 后端所有API接口需校验用户身份和权限。
-- 只读用户API仅返回可见数据，禁止POST/PUT/DELETE。
-- 编辑用户API允许PUT/POST，禁止DELETE。
-- 管理员API允许所有操作。
-- 无权限用户API直接返回403。
-- 后端日志记录所有敏感操作。
+### 后端 User Stories
 
-**验收标准**：
-- 任意用户无法通过API越权操作。
-- 日志可追溯所有敏感操作。
+#### US-B-003: 配置状态管理API
+**中文版本：**
+作为后端开发者，我需要实现配置状态管理的API接口，支持配置的启用/禁用操作，并确保状态变更的数据一致性。
 
----
+**English Version:**
+As a backend developer, I need to implement API interfaces for configuration status management, supporting enable/disable operations for configurations, and ensuring data consistency for status changes.
 
-## Story 8：BasicTab与表单校验
-**目标**：实现BasicTab表单，支持域名、路径、CMDB项目选择，前端校验。
+**验收标准：**
+- 实现状态变更的RESTful API
+- 支持批量状态操作
+- 记录状态变更日志
+- 实现状态变更的权限控制
 
-- 实现BasicTab表单，字段包括：Domain、Request Path Pattern、Backend Forward Path、CMDB Project。
-- 所有字段必填，域名+路径唯一性校验（前端提示）。
-- CMDB项目下拉选项从API获取。
-- 表单项与全局formData context同步。
-- 只读用户禁用所有输入项。
-- **编辑模式限制：** 在编辑模式下，Domain和Request Path Pattern字段不可修改，确保配置唯一性。
-
-**验收标准**：
-- BasicTab所有字段可填写、可选，校验生效。
-- 校验不通过时有明确提示。
-- 只读用户无法编辑。
-- 编辑模式下Domain和Request Path Pattern字段显示为禁用状态。
+**技术要点：**
+- 使用Spring Boot REST API
+- 实现数据库事务管理
+- 添加操作审计日志
 
 ---
 
-## Story 9：BackendsTab（目标服务器 + DNS检测）
-**目标**：实现后端目标服务器的增删、详细信息填写、Proxy设置、DNS检测功能、UI美化。
+## 3. 增强的限流与熔断配置功能
 
-- 支持添加/删除多个后端目标服务器。
-- 每个目标服务器字段：Hostname、Port、Protocol、Region、Data Center、Enable、Rewrite Host、Web Proxy设置（含Proxy Host/Port/Username/Password）。
-- **新增：DNS检测功能**
-  - 自动检测hostname的DNS解析状态（输入后1秒自动检测）
-  - 手动DNS检测按钮，支持IPv4和IPv6解析
-  - DNS检测结果显示（成功/失败/警告状态）
-  - DNS检测详情对话框，显示解析到的IP地址和响应时间
-  - 连接测试功能，测试到后端服务器的TCP连接
-  - 连接测试结果显示（成功/失败状态和响应时间）
-- Proxy设置启用时显示相关输入框。
-- 每行1-2项，分组明显，UI宽松美观。
-- 所有输入项与formData context同步。
-- 只读用户禁用所有输入项和按钮。
+### 前端 User Stories
 
-**验收标准**：
-- 可动态增删目标服务器，所有字段可填写。
-- DNS检测功能正常，能正确解析hostname。
-- 连接测试功能正常，能测试TCP连接。
-- 检测结果显示清晰，状态图标正确。
-- Proxy设置交互友好，UI分组明显。
-- 只读用户无法编辑。
+#### US-F-005: 细粒度限流配置界面
+**中文版本：**
+作为运维工程师，我希望能够配置基于用户、IP、API路径的细粒度限流规则，包括滑动窗口和令牌桶算法，以便于精确控制API访问。
 
----
+**English Version:**
+As an operations engineer, I want to configure fine-grained rate limiting rules based on users, IPs, and API paths, including sliding window and token bucket algorithms, for precise API access control.
 
-## Story 10：CookiesTab（Cookie策略）
-**目标**：实现全局Cookie策略、例外Cookie的增删、格式校验、模糊匹配。
+**验收标准：**
+- 支持多维度限流规则配置
+- 提供算法选择和参数设置
+- 实现规则优先级管理
+- 支持规则的继承关系配置
 
-- 支持选择全局Cookie策略（下拉）。
-- 支持添加/删除Excluded Cookie，输入时校验RFC6265。
-- 每个Excluded Cookie支持Started With（模糊匹配）checkbox。
-- 所有输入项与formData context同步。
-- 只读用户禁用所有输入项和按钮。
+**技术要点：**
+- 使用React Hook Form进行表单管理
+- 实现动态规则配置界面
+- 添加规则验证和预览功能
 
-**验收标准**：
-- 可动态增删Excluded Cookie，校验生效。
-- 只读用户无法编辑。
+#### US-F-006: 熔断器配置界面
+**中文版本：**
+作为系统管理员，我希望能够配置熔断器参数，包括错误率阈值、恢复时间、半开状态等，以便于防止服务雪崩。
 
----
+**English Version:**
+As a system administrator, I want to configure circuit breaker parameters, including error rate thresholds, recovery time, and half-open state, to prevent service avalanches.
 
-## Story 11：HeadersTab（请求/响应Header + CSP配置）
-**目标**：实现请求/响应Header的增删、覆盖选项、CSP配置、UI美化。
+**验收标准：**
+- 提供熔断器参数配置界面
+- 支持多种熔断策略选择
+- 实现熔断状态的实时监控
+- 提供熔断器测试功能
 
-- 支持添加/删除多个Request Header和Response Header。
-- 每个Header字段：Name、Value、Override（checkbox）。
-- **新增：CSP配置功能**
-  - CSP预设模板选择（Strict、Basic、Custom）
-  - 自定义CSP规则编辑器
-  - CSP指令和值的智能提示
-  - CSP规则预览功能
-  - 自动添加Content-Security-Policy响应头
-- 所有输入项与formData context同步。
-- 只读用户禁用所有输入项和按钮。
+#### US-F-007: 限流策略可视化
+**中文版本：**
+作为管理员，我希望能够通过可视化界面查看和管理限流策略，包括策略的优先级和继承关系，以便于策略的优化和调整。
 
-**验收标准**：
-- 可动态增删Header，所有字段可填写。
-- CSP配置功能完整，预设模板可用。
-- CSP规则编辑器友好，预览功能正常。
-- 只读用户无法编辑。
+**English Version:**
+As an administrator, I want to view and manage rate limiting strategies through a visual interface, including strategy priorities and inheritance relationships, for strategy optimization and adjustment.
 
----
+**验收标准：**
+- 实现策略关系的图形化展示
+- 支持策略的拖拽排序
+- 提供策略冲突检测
+- 实现策略效果的模拟预览
 
-## Story 12：Response Body Decorator（错误页映射）
-**目标**：实现错误码与自定义页面路径的映射、格式校验、增删。
+### 后端 User Stories
 
-- 支持添加/删除多个Error Page Mapping。
-- Status Code为数字，Page Path需为URI Path或完整URL，前端校验。
-- 所有输入项与formData context同步。
-- 只读用户禁用所有输入项和按钮。
+#### US-B-004: 限流算法实现
+**中文版本：**
+作为后端开发者，我需要实现滑动窗口和令牌桶限流算法，支持基于用户、IP、API路径的多维度限流，并与AWS API Gateway集成。
 
-**验收标准**：
-- 可动态增删映射，校验生效。
-- 只读用户无法编辑。
+**English Version:**
+As a backend developer, I need to implement sliding window and token bucket rate limiting algorithms, supporting multi-dimensional rate limiting based on users, IPs, and API paths, and integrate with AWS API Gateway.
 
----
+**验收标准：**
+- 实现高性能的限流算法
+- 支持分布式限流
+- 提供限流统计和监控
+- 实现与AWS API Gateway的配置映射
 
-## Story 13：LimitersTab（访问限制）
-**目标**：实现IP/CIDR规则、并发/频率限制、方法选择、格式校验。
+**技术要点：**
+- 使用Redis实现分布式限流
+- 实现限流算法的可插拔架构
+- 添加性能监控和指标收集
 
-- 支持添加/删除多个IP/CIDR规则，输入时校验IPv4或IPv4/CIDR。
-- 支持配置最大并发、每分钟调用数、允许方法（多选checkbox）。
-- 所有输入项与formData context同步。
-- 只读用户禁用所有输入项和按钮。
+#### US-B-005: 熔断器模式实现
+**中文版本：**
+作为后端开发者，我需要实现熔断器模式，支持自动恢复和半开状态管理，防止服务雪崩并提高系统稳定性。
 
-**验收标准**：
-- 可动态增删IP规则，所有限制项可填写。
-- 校验生效，切换语言后label/选项同步切换。
-- 只读用户无法编辑。
+**English Version:**
+As a backend developer, I need to implement circuit breaker patterns, supporting automatic recovery and half-open state management, to prevent service avalanches and improve system stability.
+
+**验收标准：**
+- 实现熔断器的三种状态管理
+- 支持自动恢复机制
+- 提供熔断器状态监控
+- 实现熔断器配置的动态更新
 
 ---
 
-## Story 14：表单提交、编辑、删除与确认
-**目标**：实现全局表单数据收集、提交、编辑、删除、弹窗确认、结果提示。
+## 4. 版本配置管理功能
 
-- Tab下方有提交、保存、删除按钮（按权限显示）。
-- 点击后弹窗展示所有表单内容详情，用户确认后POST/PUT/DELETE到API。
-- 提交成功/失败有明确提示。
-- 只读用户无提交、保存、删除按钮。
-- 后端API支持新建、编辑、删除、只读、权限校验。
+### 前端 User Stories
 
-**验收标准**：
-- 所有Tab数据能被完整收集和提交。
-- 弹窗内容美观，结果提示清晰。
-- 权限校验严格。
+#### US-F-008: 版本历史管理界面
+**中文版本：**
+作为管理员，我希望能够查看配置的变更历史记录，包括最近5次的变更数据，并提供查看更多版本的选项，以便于了解配置的演进过程。
 
----
+**English Version:**
+As an administrator, I want to view configuration change history, including the last 5 changes, with options to view more versions, to understand the configuration evolution process.
 
-## Story 15：整体UI美化与可用性提升
-**目标**：提升整体UI的商业化、易用性和响应式体验。
+**验收标准：**
+- 默认显示最近5次变更
+- 提供查看更多版本的按钮
+- 显示变更的详细信息
+- 支持变更记录的搜索和筛选
 
-- 所有表单、按钮、弹窗、分组等采用MUI最佳实践美化。
-- 重要说明用Alert，分组用Divider，小标题加粗。
-- 响应式布局，适配不同屏幕。
-- 只读、禁用、不可见等状态有明显视觉区分。
+#### US-F-009: 版本对比功能
+**中文版本：**
+作为开发者，我希望能够对比不同版本的配置差异，以可视化的方式展示变更内容，以便于理解配置的变化。
 
-**验收标准**：
-- UI风格统一现代，操作区分明，移动端体验良好。
-- 权限状态下UI反馈清晰。
+**English Version:**
+As a developer, I want to compare configuration differences between different versions, displaying changes in a visual way, to understand configuration changes.
 
----
+**验收标准：**
+- 实现并排对比视图
+- 高亮显示变更内容
+- 支持逐行对比模式
+- 提供变更摘要统计
 
-## Story 16：实时监控仪表板
-**目标**：实现网关运行状态的实时监控和历史数据分析。
+#### US-F-010: 一键回滚功能
+**中文版本：**
+作为管理员，我希望能够一键回滚到历史版本，包括回滚确认和回滚进度显示，以便于快速恢复配置。
 
-- 实现实时流量监控（QPS、带宽、连接数）的图表展示。
-- 实现响应时间统计（平均、P50、P95、P99）的折线图。
-- 实现错误率监控（4xx、5xx错误统计）的柱状图。
-- 实现后端服务健康状态监控的状态面板。
-- 支持按域名、路径、后端服务器等维度筛选监控数据。
-- 支持自定义时间范围查询（最近1小时、6小时、24小时、7天、30天）。
-- 实现监控数据的实时刷新（每30秒自动更新）。
+**English Version:**
+As an administrator, I want to rollback to historical versions with one click, including rollback confirmation and progress display, for quick configuration recovery.
 
-**验收标准**：
-- 监控数据实时准确，图表展示清晰美观。
-- 支持多维度筛选，查询性能良好。
-- 时间范围选择灵活，数据加载快速。
-- 页面响应式设计，支持移动端查看。
+**验收标准：**
+- 提供回滚确认对话框
+- 显示回滚进度
+- 支持回滚操作的撤销
+- 记录回滚操作日志
 
----
+#### US-F-011: 配置模板管理
+**中文版本：**
+作为管理员，我希望能够创建和管理配置模板，支持模板的导入导出和批量操作，以便于提高配置效率。
 
-## Story 17：告警与通知系统
-**目标**：实现监控阈值配置和多种通知方式。
+**English Version:**
+As an administrator, I want to create and manage configuration templates, supporting template import/export and batch operations, to improve configuration efficiency.
 
-- 实现监控阈值配置界面（响应时间、错误率、流量等）。
-- 支持多种通知方式配置（邮件、短信、Webhook、钉钉、企业微信）。
-- 实现告警级别分类（警告、严重、紧急）和升级策略。
-- 实现告警历史记录和确认机制。
-- 支持告警规则的启用/禁用和批量操作。
-- 实现告警测试功能（发送测试通知）。
+**验收标准：**
+- 支持模板的创建和编辑
+- 提供模板的导入导出功能
+- 实现模板的批量应用
+- 支持模板的版本管理
 
-**验收标准**：
-- 阈值配置界面友好，支持多种指标类型。
-- 通知方式配置完整，支持主流IM工具。
-- 告警历史记录清晰，支持确认和处理。
-- 告警测试功能正常，通知及时送达。
+### 后端 User Stories
 
----
+#### US-B-006: 版本管理API实现
+**中文版本：**
+作为后端开发者，我需要基于Spring JPA Envers实现版本管理功能，包括版本历史记录、差异对比和回滚操作。
 
-## Story 18：日志管理与分析
-**目标**：实现完整的请求/响应日志记录和分析功能。
+**English Version:**
+As a backend developer, I need to implement version management functionality based on Spring JPA Envers, including version history, difference comparison, and rollback operations.
 
-- 实现完整的请求/响应日志记录（包含请求头、响应头、请求体、响应体）。
-- 实现结构化日志搜索和过滤（按IP、状态码、响应时间、域名等）。
-- 实现异常请求自动标记（慢查询、错误请求、异常IP）。
-- 实现日志导出功能（CSV、JSON格式）。
-- 实现日志归档和清理策略。
-- 支持日志的实时查看和历史查询。
+**验收标准：**
+- 使用JPA Envers记录版本历史
+- 实现版本差异对比算法
+- 支持版本回滚操作
+- 提供版本管理API接口
 
-**验收标准**：
-- 日志记录完整准确，包含所有必要信息。
-- 搜索功能强大，支持多条件组合查询。
-- 异常标记准确，便于问题排查。
-- 导出功能正常，支持大数据量处理。
+**技术要点：**
+- 配置JPA Envers审计功能
+- 实现版本差异计算逻辑
+- 添加版本管理的事务控制
 
----
+#### US-B-007: 配置模板API
+**中文版本：**
+作为后端开发者，我需要实现配置模板的API接口，支持模板的CRUD操作和批量应用功能。
 
-## Story 19：WAF（Web应用防火墙）配置
-**目标**：实现Web应用防火墙功能，防护常见攻击。
+**English Version:**
+As a backend developer, I need to implement API interfaces for configuration templates, supporting CRUD operations and batch application functionality.
 
-- 实现SQL注入、XSS攻击检测规则配置界面。
-- 支持自定义安全规则编写（正则表达式、逻辑规则）。
-- 实现攻击IP自动封禁和黑名单管理。
-- 实现安全事件统计和攻击报告。
-- 支持WAF规则的启用/禁用和优先级设置。
-- 实现WAF规则的测试功能。
-
-**验收标准**：
-- 检测规则配置灵活，支持常见攻击模式。
-- 自定义规则编写简单，语法清晰。
-- 攻击IP封禁及时，黑名单管理完善。
-- 安全报告详细，便于安全分析。
+**验收标准：**
+- 实现模板的完整CRUD API
+- 支持模板的导入导出
+- 提供模板验证功能
+- 实现模板的批量应用
 
 ---
 
-## Story 20：API限流与熔断
-**目标**：实现细粒度的API限流和熔断器功能。
+## 5. CSP配置功能
 
-- 实现基于用户、IP、API路径的细粒度限流配置。
-- 实现熔断器配置（错误率阈值、恢复时间、半开状态）。
-- 实现限流策略的可视化配置界面。
-- 实现限流效果的实时监控。
-- 支持限流规则的优先级和继承关系。
-- 实现限流和熔断的测试功能。
+### 前端 User Stories
 
-**验收标准**：
-- 限流配置精细，支持多种维度。
-- 熔断器参数合理，防止服务雪崩。
-- 监控效果实时，数据准确。
-- 测试功能完善，便于验证。
+#### US-F-012: CSP预设模板选择
+**中文版本：**
+作为安全管理员，我希望能够从预设的CSP模板中选择（Strict、Basic、Custom），以便于快速配置内容安全策略。
 
----
+**English Version:**
+As a security administrator, I want to select from preset CSP templates (Strict, Basic, Custom) for quick content security policy configuration.
 
-## Story 21：认证与授权增强
-**目标**：实现完整的认证授权体系。
+**验收标准：**
+- 提供常用CSP预设模板
+- 支持模板的预览和说明
+- 实现模板的一键应用
+- 允许模板的自定义修改
 
-- 实现JWT Token验证配置界面。
-- 实现OAuth2.0集成（支持主流OAuth提供商）。
-- 实现API Key管理和轮换功能。
-- 实现用户会话管理和单点登录。
-- 支持多种认证方式的组合使用。
-- 实现认证日志和审计功能。
+#### US-F-013: CSP规则编辑器
+**中文版本：**
+作为开发者，我希望能够通过智能编辑器自定义CSP规则，包括指令和值的智能提示，以便于精确配置安全策略。
 
-**验收标准**：
-- JWT配置完整，支持多种算法。
-- OAuth2.0集成稳定，支持主流提供商。
-- API Key管理安全，支持自动轮换。
-- 会话管理完善，支持单点登录。
+**English Version:**
+As a developer, I want to customize CSP rules through an intelligent editor, including smart suggestions for directives and values, for precise security policy configuration.
 
----
+**验收标准：**
+- 提供CSP指令的智能提示
+- 支持CSP值的自动补全
+- 实现语法错误检查
+- 提供规则验证功能
 
-## Story 22：配置版本管理
-**目标**：实现配置的版本管理和回滚功能。
+#### US-F-014: CSP规则预览
+**中文版本：**
+作为管理员，我希望能够预览CSP规则的效果，包括规则的解析和潜在影响，以便于验证配置的正确性。
 
-- 实现配置变更历史记录和版本对比功能。
-- 实现一键回滚到历史版本。
-- 实现配置模板管理和批量操作。
-- 实现配置导入导出（JSON/YAML格式）。
-- 支持配置的差异对比和合并。
-- 实现配置变更的审批流程。
+**English Version:**
+As an administrator, I want to preview the effects of CSP rules, including rule parsing and potential impacts, to verify configuration correctness.
 
-**验收标准**：
-- 版本历史清晰，支持详细对比。
-- 回滚功能稳定，数据一致。
-- 模板管理完善，支持批量操作。
-- 导入导出格式标准，兼容性好。
+**验收标准：**
+- 提供CSP规则的解析展示
+- 显示规则的潜在影响
+- 实现规则冲突检测
+- 支持规则的测试验证
 
----
+### 后端 User Stories
 
-## Story 23：高级负载均衡
-**目标**：实现多种负载均衡算法和健康检查。
+#### US-B-008: CSP配置API
+**中文版本：**
+作为后端开发者，我需要实现CSP配置的API接口，支持预设模板管理和自定义规则配置。
 
-- 实现多种负载均衡算法（轮询、权重、最少连接、IP哈希）。
-- 实现后端服务器健康检查配置。
-- 实现故障转移策略。
-- 实现会话保持配置。
-- 支持负载均衡的实时监控。
-- 实现负载均衡的测试功能。
+**English Version:**
+As a backend developer, I need to implement API interfaces for CSP configuration, supporting preset template management and custom rule configuration.
 
-**验收标准**：
-- 负载均衡算法正确，分发均匀。
-- 健康检查及时，故障转移快速。
-- 会话保持稳定，用户体验良好。
-- 监控数据准确，便于优化。
+**验收标准：**
+- 实现CSP配置的CRUD API
+- 支持预设模板的管理
+- 提供CSP规则验证
+- 实现CSP头部的自动添加
 
 ---
 
-## Story 24：缓存策略配置
-**目标**：实现HTTP缓存和性能优化。
+## 6. 缓存策略配置
 
-- 实现HTTP缓存头配置。
-- 实现缓存规则设置（按路径、参数、Header）。
-- 实现缓存失效策略和预加载。
-- 实现缓存命中率统计和优化建议。
-- 支持缓存的实时监控。
-- 实现缓存的手动清理。
+### 前端 User Stories
 
-**验收标准**：
-- 缓存配置灵活，支持多种策略。
-- 缓存命中率高，性能提升明显。
-- 监控数据准确，优化建议合理。
-- 清理功能完善，操作简单。
+#### US-F-015: HTTP缓存头配置
+**中文版本：**
+作为运维工程师，我希望能够配置HTTP缓存头，包括Cache-Control等设置，以便于优化API性能。
 
----
+**English Version:**
+As an operations engineer, I want to configure HTTP cache headers, including Cache-Control settings, to optimize API performance.
 
-## Story 25：运维工具集
-**目标**：实现运维操作的自动化工具。
+**验收标准：**
+- 提供Cache-Control配置界面
+- 支持多种缓存策略选择
+- 实现缓存规则的预览
+- 提供缓存效果测试
 
-- 实现配置热重载和灰度发布。
-- 实现服务重启/停止/扩容。
-- 实现性能指标收集和基准测试。
-- 实现系统资源监控（CPU、内存、磁盘、网络）。
-- 支持运维操作的批量执行。
-- 实现运维操作的审计日志。
+#### US-F-016: 缓存规则设置
+**中文版本：**
+作为管理员，我希望能够设置基于路径、参数、Header的缓存规则，以便于实现精细化的缓存控制。
 
-**验收标准**：
-- 热重载稳定，灰度发布安全。
-- 服务操作可靠，批量执行高效。
-- 监控数据准确，基准测试标准。
-- 审计日志完整，操作可追溯。
+**English Version:**
+As an administrator, I want to set cache rules based on paths, parameters, and headers, for fine-grained cache control.
 
----
+**验收标准：**
+- 支持多维度缓存规则配置
+- 提供规则优先级管理
+- 实现缓存规则的继承
+- 支持缓存规则的测试
 
-## Story 26：问题诊断
-**目标**：实现问题诊断和根因分析。
+#### US-F-017: 缓存清理功能
+**中文版本：**
+作为管理员，我希望能够清理缓存并查看缓存状态，包括缓存命中率和清理操作，以便于缓存管理。
 
-- 实现请求链路追踪（分布式追踪）。
-- 实现性能瓶颈分析和优化建议。
-- 实现错误根因分析和自动修复。
-- 实现诊断报告生成和分享。
-- 支持诊断工具的集成。
-- 实现诊断历史记录。
+**English Version:**
+As an administrator, I want to clear cache and view cache status, including cache hit rates and clearing operations, for cache management.
 
-**验收标准**：
-- 链路追踪准确，覆盖完整。
-- 瓶颈分析深入，建议可行。
-- 根因分析准确，修复有效。
-- 诊断报告详细，便于分享。
+**验收标准：**
+- 提供缓存清理操作界面
+- 显示缓存命中率统计
+- 支持选择性缓存清理
+- 实现缓存清理的确认机制
 
----
+### 后端 User Stories
 
-## Story 27：多租户管理
-**目标**：实现多租户隔离和资源管理。
+#### US-B-009: 缓存策略API
+**中文版本：**
+作为后端开发者，我需要实现缓存策略的API接口，支持缓存头的配置和缓存规则的管理。
 
-- 实现租户隔离配置。
-- 实现资源配额管理。
-- 实现租户间配置共享和模板。
-- 实现计费和用量统计。
-- 实现租户管理员权限控制。
-- 支持租户的创建、删除、迁移。
+**English Version:**
+As a backend developer, I need to implement API interfaces for cache strategies, supporting cache header configuration and cache rule management.
 
-**验收标准**：
-- 租户隔离严格，数据安全。
-- 资源配额合理，使用透明。
-- 配置共享灵活，模板丰富。
-- 计费准确，统计详细。
+**验收标准：**
+- 实现缓存策略的CRUD API
+- 支持缓存头的自动添加
+- 提供缓存规则验证
+- 实现缓存清理功能
 
 ---
 
-## Story 28：团队协作
-**目标**：实现团队协作和权限管理。
+## 开发时间安排
 
-- 实现用户角色和权限管理（超级管理员、租户管理员、开发者、运维、只读）。
-- 实现操作审计日志和合规报告。
-- 实现团队通知和协作工具。
-- 实现知识库和文档管理。
-- 支持团队的组织架构管理。
-- 实现协作工作流。
+### 第1周：数据库设计与基础功能
+- 数据库表结构设计和Spring JPA实现
+- Disable功能的前后端开发
+- 基础API接口实现
 
-**验收标准**：
-- 权限管理精细，角色清晰。
-- 审计日志完整，合规报告准确。
-- 协作工具实用，通知及时。
-- 知识库丰富，文档完善。
+### 第2周：限流熔断与版本管理
+- 增强限流熔断功能开发
+- 版本管理功能实现
+- CSP配置功能开发
 
----
-
-## 开发优先级建议
-
-### 第一阶段（核心功能）：Story 1-12
-- 基础页面和配置管理功能
-- 权限控制和UI美化
-- 建议3位开发者并行开发，每人负责4个Story
-
-### 第二阶段（监控安全）：Story 13-18
-- 监控仪表板和告警系统
-- WAF和API限流功能
-- 认证授权增强
-- 建议2位开发者负责监控，1位负责安全
-
-### 第三阶段（高级功能）：Story 19-28
-- 版本管理和负载均衡
-- 缓存和运维工具
-- 多租户和团队协作
-- 建议根据功能复杂度分配
+### 第3周：缓存策略与集成测试
+- 缓存策略配置功能
+- 系统集成测试
+- 性能优化和bug修复
 
 ---
 
-## 技术栈建议
+## 技术栈
 
-### 前端技术栈
-- React 18 + Next.js 14
-- Material-UI (MUI) 组件库
-- TypeScript 类型安全
-- React Query 数据管理
-- Recharts 图表展示
-- React Hook Form 表单管理
+### 前端
+- Next.js 14 (App Router)
+- React 18
+- Material-UI (MUI)
+- TypeScript
+- React Hook Form
 
-### 后端技术栈
-- Spring Boot 3.x
-- Spring Security 安全框架
-- Spring Data JPA 数据访问
-- Redis 缓存和会话管理
-- Elasticsearch 日志存储
-- Prometheus + Grafana 监控
+### 后端
+- Spring Boot 3
+- Spring Data JPA
+- Spring JPA Envers
+- MySQL 8.0
 
-### 部署架构
-- Docker 容器化部署
-- Kubernetes 编排管理
-- Nginx 反向代理
-- MySQL/PostgreSQL 主数据库
-- Redis 缓存数据库
-
----
-
-> 建议3位开发者可按Tab/功能/权限/搜索分工，每人每次领取1-2个User Story，2-3天内完成并自测。
-> 后端开发需与前端协作，确保API、权限、日志、搜索等功能完整。
-> 重点关注监控、安全、性能等核心功能，这些是网关管理系统的关键特性。 
+### 开发工具
+- Git
+- Docker
+- Postman/Insomnia
+- VS Code 
