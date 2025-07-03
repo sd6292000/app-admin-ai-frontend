@@ -468,18 +468,22 @@ As an operations engineer, I want to configure HTTP cache headers, including Cac
 - Provide cache effect testing
 - Show cache performance metrics
 - Support conditional caching rules
+- Enable/disable cache configuration
+- Support custom cache control values
 
 **Technical Details:**
 
 **Frontend Implementation:**
-- **Component:** `CacheHeaderConfig.tsx`
+- **Component:** `CacheHeaderConfig.tsx` (to be added to HeadersTab.tsx)
 - **UI Fields:**
+  - `enabled` (boolean): Enable/disable cache configuration
   - `cacheControl` (string): Custom Cache-Control value
-  - `maxAgeSeconds` (number): Max age in seconds
+  - `maxAgeSeconds` (number): Max age in seconds (0-31536000)
   - `etagEnabled` (boolean): ETag support
   - `staleWhileRevalidateSeconds` (number): Stale-while-revalidate time
   - `staleIfErrorSeconds` (number): Stale-if-error time
   - `varyHeaders` (string[]): Vary headers array
+  - `description` (string): Cache configuration description
 
 **Cache Strategies:**
 ```typescript
@@ -487,18 +491,363 @@ const CACHE_STRATEGIES = {
   noCache: {
     name: "No Cache",
     description: "Always fetch fresh content",
-    value: "no-cache, no-store, must-revalidate"
+    value: "no-cache, no-store, must-revalidate",
+    maxAge: 0
   },
   shortTerm: {
     name: "Short Term Cache",
     description: "Cache for 5 minutes",
-    value: "max-age=300"
+    value: "max-age=300",
+    maxAge: 300
+  },
+  mediumTerm: {
+    name: "Medium Term Cache",
+    description: "Cache for 1 hour",
+    value: "max-age=3600",
+    maxAge: 3600
   },
   longTerm: {
     name: "Long Term Cache",
-    description: "Cache for 1 hour",
-    value: "max-age=3600"
+    description: "Cache for 24 hours",
+    value: "max-age=86400",
+    maxAge: 86400
   },
   custom: {
     name: "Custom",
-    description: "Custom ca
+    description: "Custom cache control settings",
+    value: "",
+    maxAge: null
+  }
+};
+```
+
+**UI Component Structure:**
+```typescript
+interface CacheHeaderConfigProps {
+  cacheHeader: CacheHeaderDTO;
+  onChange: (cacheHeader: CacheHeaderDTO) => void;
+  onPreview: () => void;
+}
+
+interface CacheHeaderDTO {
+  id?: number;
+  enabled: boolean;
+  cacheControl?: string;
+  etagEnabled: boolean;
+  maxAgeSeconds?: number;
+  staleWhileRevalidateSeconds?: number;
+  staleIfErrorSeconds?: number;
+  varyHeaders?: string;
+  description?: string;
+  headerName: string;
+  headerValue: string;
+}
+```
+
+**Backend API Endpoints:**
+- `GET /api/gateway-configs/{id}/cache-header` - Get cache header configuration
+- `PUT /api/gateway-configs/{id}/cache-header` - Update cache header configuration
+- `POST /api/cache/validate` - Validate cache configuration
+- `POST /api/cache/preview` - Preview cache header effects
+
+**Test Cases:**
+1. **Enable Cache Configuration**
+   - Given: Cache configuration is disabled
+   - When: User enables cache configuration
+   - Then: Cache configuration fields should become editable
+
+2. **Select Cache Strategy**
+   - Given: Multiple cache strategies are available
+   - When: User selects a strategy
+   - Then: Corresponding cache control values should be populated
+
+3. **Custom Cache Control**
+   - Given: Custom strategy is selected
+   - When: User enters custom cache control value
+   - Then: Custom value should be used instead of preset
+
+4. **Cache Preview**
+   - Given: Cache configuration is set
+   - When: User clicks preview button
+   - Then: Generated Cache-Control header should be displayed
+
+5. **Validation**
+   - Given: Invalid cache configuration is entered
+   - When: Validation is triggered
+   - Then: Error messages should be displayed
+
+6. **ETag Configuration**
+   - Given: ETag is enabled
+   - When: Cache header is generated
+   - Then: ETag header should be included in response
+
+7. **Vary Headers**
+   - Given: Vary headers are configured
+   - When: Cache header is generated
+   - Then: Vary header should be included with specified values
+
+---
+
+### US-B-009: HTTP Cache Header Configuration Backend Mapping
+
+**Description:**
+As a backend developer, I need to implement API interfaces for cache strategies, supporting cache header configuration and cache rule management.
+
+**Acceptance Criteria:**
+- Support cache header mapping with JPA entities
+- Provide cache rule validation
+- Implement cache header generation logic
+- Support cache configuration CRUD operations
+- Ensure data consistency in cache operations
+- Provide cache performance monitoring
+
+**Technical Details:**
+
+**Entity Mapping:**
+```java
+@Entity
+@Table(name = "cache_headers")
+@Audited
+public class CacheHeader {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(name = "cache_control", length = 500)
+    private String cacheControl;
+
+    @Column(name = "etag_enabled", nullable = false)
+    private Boolean etagEnabled = true;
+
+    @Column(name = "max_age_seconds")
+    private Integer maxAgeSeconds;
+
+    @Column(name = "stale_while_revalidate_seconds")
+    private Integer staleWhileRevalidateSeconds;
+
+    @Column(name = "stale_if_error_seconds")
+    private Integer staleIfErrorSeconds;
+
+    @Column(name = "vary_headers", columnDefinition = "JSON")
+    private String varyHeaders;
+
+    @Column(name = "enabled", nullable = false)
+    private Boolean enabled = true;
+
+    @Column(name = "description", length = 500)
+    private String description;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "header_config_id", nullable = false)
+    private HeaderConfig headerConfig;
+}
+```
+
+**Service Implementation:**
+```java
+@Service
+@Transactional
+public class CacheHeaderService {
+    
+    @Autowired
+    private CacheHeaderRepository cacheHeaderRepository;
+    
+    public CacheHeaderDTO getCacheHeader(Long headerConfigId) {
+        CacheHeader cacheHeader = cacheHeaderRepository.findByHeaderConfigId(headerConfigId);
+        return convertToDTO(cacheHeader);
+    }
+    
+    public CacheHeaderDTO updateCacheHeader(Long headerConfigId, CacheHeaderDTO dto) {
+        CacheHeader cacheHeader = cacheHeaderRepository.findByHeaderConfigId(headerConfigId);
+        if (cacheHeader == null) {
+            cacheHeader = new CacheHeader();
+            cacheHeader.setHeaderConfig(headerConfigRepository.findById(headerConfigId).orElseThrow());
+        }
+        
+        updateCacheHeaderFromDTO(cacheHeader, dto);
+        cacheHeader = cacheHeaderRepository.save(cacheHeader);
+        return convertToDTO(cacheHeader);
+    }
+    
+    public CacheValidationResult validateCacheConfiguration(CacheHeaderDTO dto) {
+        CacheValidationResult result = new CacheValidationResult();
+        
+        // Validate max-age
+        if (dto.getMaxAgeSeconds() != null && dto.getMaxAgeSeconds() < 0) {
+            result.addError("maxAgeSeconds", "Max age must be non-negative");
+        }
+        
+        // Validate stale-while-revalidate
+        if (dto.getStaleWhileRevalidateSeconds() != null && dto.getStaleWhileRevalidateSeconds() < 0) {
+            result.addError("staleWhileRevalidateSeconds", "Stale while revalidate must be non-negative");
+        }
+        
+        // Validate stale-if-error
+        if (dto.getStaleIfErrorSeconds() != null && dto.getStaleIfErrorSeconds() < 0) {
+            result.addError("staleIfErrorSeconds", "Stale if error must be non-negative");
+        }
+        
+        return result;
+    }
+    
+    public String generateCacheControlValue(CacheHeader cacheHeader) {
+        if (!cacheHeader.getEnabled()) {
+            return null;
+        }
+        
+        if (cacheHeader.getCacheControl() != null && !cacheHeader.getCacheControl().trim().isEmpty()) {
+            return cacheHeader.getCacheControl();
+        }
+        
+        return buildCacheControlValue(cacheHeader);
+    }
+    
+    private String buildCacheControlValue(CacheHeader cacheHeader) {
+        StringBuilder value = new StringBuilder();
+        
+        if (cacheHeader.getMaxAgeSeconds() != null) {
+            value.append("max-age=").append(cacheHeader.getMaxAgeSeconds());
+        }
+        
+        if (cacheHeader.getStaleWhileRevalidateSeconds() != null) {
+            if (value.length() > 0) value.append(", ");
+            value.append("stale-while-revalidate=").append(cacheHeader.getStaleWhileRevalidateSeconds());
+        }
+        
+        if (cacheHeader.getStaleIfErrorSeconds() != null) {
+            if (value.length() > 0) value.append(", ");
+            value.append("stale-if-error=").append(cacheHeader.getStaleIfErrorSeconds());
+        }
+        
+        return value.toString();
+    }
+}
+```
+
+**Repository Interface:**
+```java
+@Repository
+public interface CacheHeaderRepository extends JpaRepository<CacheHeader, Long> {
+    
+    @Query("SELECT ch FROM CacheHeader ch WHERE ch.headerConfig.id = :headerConfigId")
+    CacheHeader findByHeaderConfigId(@Param("headerConfigId") Long headerConfigId);
+    
+    @Query("SELECT ch FROM CacheHeader ch WHERE ch.enabled = true")
+    List<CacheHeader> findAllEnabled();
+    
+    @Query("SELECT ch FROM CacheHeader ch WHERE ch.maxAgeSeconds > :minAge")
+    List<CacheHeader> findByMinAge(@Param("minAge") Integer minAge);
+}
+```
+
+**API Controller:**
+```java
+@RestController
+@RequestMapping("/api/gateway-configs/{configId}")
+public class CacheHeaderController {
+    
+    @Autowired
+    private CacheHeaderService cacheHeaderService;
+    
+    @GetMapping("/cache-header")
+    public ResponseEntity<CacheHeaderDTO> getCacheHeader(@PathVariable Long configId) {
+        CacheHeaderDTO cacheHeader = cacheHeaderService.getCacheHeader(configId);
+        return ResponseEntity.ok(cacheHeader);
+    }
+    
+    @PutMapping("/cache-header")
+    public ResponseEntity<CacheHeaderDTO> updateCacheHeader(
+            @PathVariable Long configId,
+            @RequestBody @Valid CacheHeaderDTO cacheHeaderDTO) {
+        
+        // Validate cache configuration
+        CacheValidationResult validation = cacheHeaderService.validateCacheConfiguration(cacheHeaderDTO);
+        if (!validation.isValid()) {
+            return ResponseEntity.badRequest().body(null);
+        }
+        
+        CacheHeaderDTO updated = cacheHeaderService.updateCacheHeader(configId, cacheHeaderDTO);
+        return ResponseEntity.ok(updated);
+    }
+    
+    @PostMapping("/cache-header/preview")
+    public ResponseEntity<CachePreviewResult> previewCacheHeader(
+            @PathVariable Long configId,
+            @RequestBody CacheHeaderDTO cacheHeaderDTO) {
+        
+        CachePreviewResult preview = cacheHeaderService.generatePreview(cacheHeaderDTO);
+        return ResponseEntity.ok(preview);
+    }
+}
+```
+
+**Validation Classes:**
+```java
+public class CacheValidationResult {
+    private boolean valid = true;
+    private Map<String, String> errors = new HashMap<>();
+    
+    public void addError(String field, String message) {
+        errors.put(field, message);
+        valid = false;
+    }
+    
+    public boolean isValid() {
+        return valid;
+    }
+    
+    public Map<String, String> getErrors() {
+        return errors;
+    }
+}
+
+public class CachePreviewResult {
+    private String cacheControlHeader;
+    private String etagHeader;
+    private String varyHeader;
+    private Map<String, String> allHeaders = new HashMap<>();
+    
+    // Getters and setters
+}
+```
+
+**Test Cases:**
+1. **Create Cache Header**
+   - Given: Valid cache header configuration
+   - When: POST request is sent to create cache header
+   - Then: Cache header should be created and persisted
+
+2. **Update Cache Header**
+   - Given: Existing cache header configuration
+   - When: PUT request is sent to update cache header
+   - Then: Cache header should be updated with new values
+
+3. **Validate Cache Configuration**
+   - Given: Invalid cache configuration (negative max-age)
+   - When: Validation is performed
+   - Then: Validation errors should be returned
+
+4. **Generate Cache Control Value**
+   - Given: Cache header with max-age and stale-while-revalidate
+   - When: Cache control value is generated
+   - Then: Correct Cache-Control header value should be returned
+
+5. **Disable Cache Header**
+   - Given: Enabled cache header configuration
+   - When: Cache header is disabled
+   - Then: No cache headers should be generated
+
+6. **ETag Header Generation**
+   - Given: Cache header with ETag enabled
+   - When: Headers are generated
+   - Then: ETag header should be included
+
+7. **Vary Headers Processing**
+   - Given: Cache header with Vary headers configured
+   - When: Headers are generated
+   - Then: Vary header should be included with correct values
+
+8. **Database Transaction**
+   - Given: Cache header update operation
+   - When: Database transaction fails
+   - Then: Changes should be rolled back and error returned
