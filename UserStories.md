@@ -351,7 +351,7 @@ As an administrator, I want to preview the effects of CSP rules, including rule 
 
 ### 后端 User Stories
 
-#### US-B-008: CSP配置API
+#### US-B-008: CSP配置JPA的映射
 **中文版本：**
 作为后端开发者，我需要实现CSP配置的API接口，支持预设模板管理和自定义规则配置。
 
@@ -362,8 +362,7 @@ As a backend developer, I need to implement API interfaces for CSP configuration
 - 实现CSP配置的CRUD API
 - 支持预设模板的管理
 - 提供CSP规则验证
-- 实现CSP头部的自动添加
-
+- 对于CSP的modeling与JPA的Static response header进行相互的modeling映射
 ---
 
 ## 6. 缓存策略配置
@@ -383,35 +382,12 @@ As an operations engineer, I want to configure HTTP cache headers, including Cac
 - 实现缓存规则的预览
 - 提供缓存效果测试
 
-#### US-F-016: 缓存规则设置
-**中文版本：**
-作为管理员，我希望能够设置基于路径、参数、Header的缓存规则，以便于实现精细化的缓存控制。
 
-**English Version:**
-As an administrator, I want to set cache rules based on paths, parameters, and headers, for fine-grained cache control.
 
-**验收标准：**
-- 支持多维度缓存规则配置
-- 提供规则优先级管理
-- 实现缓存规则的继承
-- 支持缓存规则的测试
-
-#### US-F-017: 缓存清理功能
-**中文版本：**
-作为管理员，我希望能够清理缓存并查看缓存状态，包括缓存命中率和清理操作，以便于缓存管理。
-
-**English Version:**
-As an administrator, I want to clear cache and view cache status, including cache hit rates and clearing operations, for cache management.
-
-**验收标准：**
-- 提供缓存清理操作界面
-- 显示缓存命中率统计
-- 支持选择性缓存清理
-- 实现缓存清理的确认机制
 
 ### 后端 User Stories
 
-#### US-B-009: 缓存策略API
+#### US-B-009: HTTP缓存头配置的后台映射
 **中文版本：**
 作为后端开发者，我需要实现缓存策略的API接口，支持缓存头的配置和缓存规则的管理。
 
@@ -419,11 +395,11 @@ As an administrator, I want to clear cache and view cache status, including cach
 As a backend developer, I need to implement API interfaces for cache strategies, supporting cache header configuration and cache rule management.
 
 **验收标准：**
-- 实现缓存策略的CRUD API
-- 支持缓存头的自动添加
+- 支持缓存头的Header与JPA间的映射
 - 提供缓存规则验证
-- 实现缓存清理功能
 
+
+---
 ---
 
 ## 开发时间安排
