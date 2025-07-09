@@ -1,194 +1,117 @@
 "use client";
-import React, { useState, useEffect, createContext, useContext } from "react";
-import { Box, Tabs, Tab, Typography, Paper, AppBar, Toolbar, Select, MenuItem, Dialog, DialogTitle, DialogContent, DialogActions, Button, Card, Divider, IconButton, CircularProgress, Alert } from "@mui/material";
+import React, { useState, useEffect } from "react";
+import { Box, Tabs, Tab, Typography, Paper, AppBar, Toolbar, Dialog, DialogTitle, DialogContent, DialogActions, Button, Card, Divider, IconButton, CircularProgress, Alert } from "@mui/material";
 import BasicTab from "./components/BasicTab";
 import BackendsTab from "./components/BackendsTab";
 import CookiesTab from "./components/CookiesTab";
 import HeadersTab from "./components/HeadersTab";
 import ResponseBodyDecoratorTab from "./components/ResponseBodyDecoratorTab";
 import LimitersTab from "./components/LimitersTab";
-import LanguageIcon from '@mui/icons-material/Language';
+import LanguageSwitcher from "../../components/LanguageSwitcher";
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
 import CookieIcon from '@mui/icons-material/Cookie';
 import HttpIcon from '@mui/icons-material/Http';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import SecurityIcon from '@mui/icons-material/Security';
-import { FormProvider, FormDataType, FormConfigType, useFormValidation } from "./contexts/FormContext";
+import { useLanguage, useLocalizedText } from "../../contexts/LanguageContext";
+import { getPageConfig, getFormConfig, validateForm } from "../../lib/i18n";
 
-// 静态内容
-const STATIC_CONTENT = {
-  title: "Gateway Admin",
-  submitButton: "提交",
-  cancelButton: "取消",
-  confirmButton: "确认提交",
-  closeButton: "关闭",
-  confirmTitle: "请确认创建内容",
-  successMessage: "创建成功！",
-  errorPrefix: "提交失败：",
-  loadingMessage: "正在提交...",
-  tabLabels: [
-    { label: "Basic", icon: <AssignmentIcon fontSize="small" /> },
-    { label: "Backends", icon: <SettingsEthernetIcon fontSize="small" /> },
-    { label: "Cookies", icon: <CookieIcon fontSize="small" /> },
-    { label: "Headers", icon: <HttpIcon fontSize="small" /> },
-    { label: "Response Body Decorator", icon: <ErrorOutlineIcon fontSize="small" /> },
-    { label: "Limiters", icon: <SecurityIcon fontSize="small" /> },
-  ]
-};
-
-// 语言 context
-export const LanguageContext = createContext<{
-  lang: string;
-  setLang: (lang: string) => void;
-} | null>(null);
-
-// 默认的formConfig
-const defaultFormConfig: FormConfigType = {
+// 表单数据类型
+interface FormDataType {
   basic: {
-    labels: {
-      domain: 'Domain',
-      requestPathPattern: 'Request Path Pattern',
-      backendForwardPath: 'Backend Forward Path',
-      cmdbProject: 'CMDB Project',
-      uniqueTip: 'Domain + Path Pattern must be unique.'
-    },
-    options: {
-      cmdbProject: [
-        { label: 'Project A', value: 'a' },
-        { label: 'Project B', value: 'b' }
-      ]
-    }
-  },
-  backends: {
-    labels: {
-      hostname: 'Hostname',
-      port: 'Port',
-      protocol: 'Protocol',
-      region: 'Region',
-      dataCenter: 'Data Center'
-    },
-    options: {
-      protocol: [
-        { label: 'HTTP', value: 'HTTP' },
-        { label: 'HTTPS', value: 'HTTPS' }
-      ],
-      region: [
-        { label: 'EU', value: 'EU' },
-        { label: 'AS', value: 'AS' },
-        { label: 'AM', value: 'AM' }
-      ],
-      dataCenter: {
-        EU: [
-          { label: 'WK', value: 'WK' },
-          { label: 'RH', value: 'RH' }
-        ],
-        AS: [
-          { label: 'SDC', value: 'SDC' },
-          { label: 'TDC', value: 'TDC' }
-        ],
-        AM: [
-          { label: 'PSC', value: 'PSC' }
-        ]
-      }
-    },
-    validation: {
-      port: { min: 0, max: 65535 }
-    }
-  },
+    domain: string;
+    requestPathPattern: string;
+    backendForwardPath: string;
+    cmdbProject: string;
+  };
+  backends: Array<{
+    hostname: string;
+    port: number;
+    protocol: string;
+    region: string;
+    dataCenter: string;
+    enabled: boolean;
+  }>;
   cookies: {
-    labels: {
-      globalStrategy: 'Global Cookie Strategy',
-      exception: 'Exceptions',
-      cookieName: 'Cookie Name',
-      strategy: 'Strategy',
-      rfcTip: 'Cookie name must conform to RFC standard.'
-    },
-    options: {
-      strategy: [
-        { label: 'Passthrough', value: 'passthrough' },
-        { label: 'Persist', value: 'persist' }
-      ]
-    }
-  },
+    globalStrategy: string;
+    exceptions: Array<{
+      name: string;
+      strategy: string;
+    }>;
+  };
   headers: {
-    labels: {
-      request: 'Request Headers',
-      response: 'Response Headers',
-      name: 'Name',
-      value: 'Value',
-      override: 'Override',
-      addRequest: 'Add Request Header',
-      addResponse: 'Add Response Header',
-      remove: 'Remove'
-    }
-  },
-  responseBodyDecorator: {
-    labels: {
-      errorPage: 'Error Page Mapping',
-      statusCode: 'Status Code',
-      pagePath: 'Page Path',
-      add: 'Add Mapping'
-    }
-  },
+    request: Array<{ name: string; value: string; override: boolean }>;
+    response: Array<{ name: string; value: string; override: boolean }>;
+  };
+  responseBodyDecorator: Array<{
+    statusCode: string;
+    pagePath: string;
+  }>;
   limiters: {
-    labels: {
-      ipRule: 'IP/Subnet Rules',
-      ipOrCidr: 'IP or CIDR',
-      mode: 'Mode',
-      allow: 'Allow',
-      deny: 'Deny',
-      addRule: 'Add Rule',
-      maxConcurrent: 'Max Concurrent',
-      maxPerMinute: 'Max Calls Per Minute',
-      allowedMethods: 'Allowed Methods',
-      atLeastOne: 'At least one limiter must be set.'
-    },
-    options: {
-      mode: [
-        { label: 'Allow', value: 'allow' },
-        { label: 'Deny', value: 'deny' }
-      ],
-      methods: [
-        { label: 'GET', value: 'GET' },
-        { label: 'POST', value: 'POST' },
-        { label: 'PUT', value: 'PUT' },
-        { label: 'DELETE', value: 'DELETE' }
-      ]
-    }
-  }
-};
+    ipRules: Array<{ value: string; mode: string }>;
+    maxConcurrent: string;
+    maxPerMinute: string;
+    allowedMethods: string[];
+  };
+  cache: {
+    enabled: boolean;
+    cacheControl: string;
+    maxAgeSeconds: number;
+    etagEnabled: boolean;
+    staleWhileRevalidateSeconds: number;
+    staleIfErrorSeconds: number;
+  };
+}
 
 // 提交状态类型
 type SubmitStatus = 'idle' | 'loading' | 'success' | 'error';
 
 // 主组件
 function GatewayMappingPage() {
+  const { language, metaInfo, loading: metaLoading } = useLanguage();
+  const { getLabel, getMessage } = useLocalizedText();
+  
   const [tab, setTab] = useState(0);
-  const [lang, setLang] = useState("en");
-  const [formConfig, setFormConfig] = useState<FormConfigType>(defaultFormConfig);
+  const [formData, setFormData] = useState<FormDataType>({
+    basic: {
+      domain: '',
+      requestPathPattern: '',
+      backendForwardPath: '',
+      cmdbProject: ''
+    },
+    backends: [],
+    cookies: {
+      globalStrategy: 'passthrough',
+      exceptions: []
+    },
+    headers: {
+      request: [],
+      response: []
+    },
+    responseBodyDecorator: [],
+    limiters: {
+      ipRules: [],
+      maxConcurrent: '',
+      maxPerMinute: '',
+      allowedMethods: []
+    },
+    cache: {
+      enabled: false,
+      cacheControl: '',
+      maxAgeSeconds: 3600,
+      etagEnabled: true,
+      staleWhileRevalidateSeconds: 0,
+      staleIfErrorSeconds: 0
+    }
+  });
+  
   const [openDialog, setOpenDialog] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
 
-  // 加载表单配置
-  useEffect(() => {
-    async function loadFormConfig() {
-      try {
-        const response = await fetch(`/api/form-config?lang=${lang}`);
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
-        setFormConfig((prevConfig) => ({ ...prevConfig, ...data }));
-      } catch (error) {
-        console.error('Failed to load form config:', error);
-        // 如果API失败，保持默认配置不变
-      }
-    }
-
-    loadFormConfig();
-  }, [lang]);
+  // 获取页面配置
+  const pageConfig = metaInfo ? getPageConfig(metaInfo, 'gateway-mapping') : null;
 
   // 处理标签页变化
   function handleTabChange(_: React.SyntheticEvent, newValue: number) {
@@ -210,7 +133,7 @@ function GatewayMappingPage() {
       const response = await fetch("/api/gateway-configs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({}), // 这里应该传递实际的表单数据
+        body: JSON.stringify(formData),
       });
 
       if (response.ok) {
@@ -221,7 +144,7 @@ function GatewayMappingPage() {
         setSubmitStatus('error');
       }
     } catch (error) {
-      const message = error instanceof Error ? error.message : '未知错误';
+      const message = error instanceof Error ? error.message : 'Unknown error';
       setErrorMessage(message);
       setSubmitStatus('error');
     }
@@ -238,127 +161,123 @@ function GatewayMappingPage() {
     setOpenDialog(false);
   }
 
+  // 标签页配置
+  const tabConfig = [
+    { label: getLabel('basic'), icon: <AssignmentIcon fontSize="small" /> },
+    { label: getLabel('backends'), icon: <SettingsEthernetIcon fontSize="small" /> },
+    { label: getLabel('cookies'), icon: <CookieIcon fontSize="small" /> },
+    { label: getLabel('headers'), icon: <HttpIcon fontSize="small" /> },
+    { label: getLabel('responseBodyDecorator'), icon: <ErrorOutlineIcon fontSize="small" /> },
+    { label: getLabel('limiters'), icon: <SecurityIcon fontSize="small" /> },
+  ];
+
+  if (metaLoading) {
+    return (
+      <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+        <CircularProgress />
+      </Box>
+    );
+  }
+
   return (
-    <LanguageContext.Provider value={{ lang, setLang }}>
-      <FormProvider initialConfig={formConfig}>
-        <AppBar position="static" color="default" elevation={2} sx={{ mb: 2, borderRadius: 2 }}>
-          <Toolbar sx={{ justifyContent: "space-between" }}>
-            <Box display="flex" alignItems="center" gap={2}>
-              <img src="/logo.svg" alt="logo" style={{ height: 32 }} />
-              <Typography variant="h6" fontWeight={700} color="primary">
-                {STATIC_CONTENT.title}
-              </Typography>
-            </Box>
-            <Box display="flex" alignItems="center" gap={1}>
-              <LanguageIcon color="action" />
-              <Select
-                value={lang}
-                onChange={(e) => setLang(e.target.value)}
-                size="small"
-                sx={{ minWidth: 100 }}
-              >
-                <MenuItem value="en">English</MenuItem>
-                <MenuItem value="zh">中文</MenuItem>
-              </Select>
-            </Box>
-          </Toolbar>
-        </AppBar>
-        
-        <Card sx={{ width: "100%", minHeight: 600, p: 3, borderRadius: 3, boxShadow: 3 }}>
-          <Tabs 
-            value={tab} 
-            onChange={handleTabChange} 
-            variant="scrollable" 
-            scrollButtons="auto" 
-            textColor="primary" 
-            indicatorColor="primary" 
-            sx={{ mb: 2 }}
-          >
-            {STATIC_CONTENT.tabLabels.map((tabObj, idx) => (
+    <Box>
+      {/* 顶部工具栏 */}
+      <AppBar position="static" color="default" elevation={1}>
+        <Toolbar>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {getLabel('gatewayMapping')}
+          </Typography>
+          <LanguageSwitcher />
+        </Toolbar>
+      </AppBar>
+
+      {/* 主要内容 */}
+      <Box sx={{ p: 3 }}>
+        <Paper elevation={1} sx={{ borderRadius: 2 }}>
+          {/* 标签页导航 */}
+          <Tabs value={tab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider' }}>
+            {tabConfig.map((tabItem, index) => (
               <Tab 
-                key={tabObj.label}
-                label={
-                  <Box display="flex" alignItems="center" gap={1}>
-                    {tabObj.icon}
-                    {tabObj.label}
-                  </Box>
-                } 
-                id={`tab-${idx}`} 
-                aria-controls={`tabpanel-${idx}`} 
-                sx={{ fontSize: 16, fontWeight: 600, minHeight: 48 }} 
+                key={index} 
+                label={tabItem.label} 
+                icon={tabItem.icon} 
+                iconPosition="start"
               />
             ))}
           </Tabs>
-          
-          <Divider sx={{ mb: 2 }} />
-          
-          <div hidden={tab !== 0}><BasicTab showValidation={true} /></div>
-          <div hidden={tab !== 1}><BackendsTab /></div>
-          <div hidden={tab !== 2}><CookiesTab /></div>
-          <div hidden={tab !== 3}><HeadersTab /></div>
-          <div hidden={tab !== 4}><ResponseBodyDecoratorTab /></div>
-          <div hidden={tab !== 5}><LimitersTab /></div>
-          
-          <Box mt={4} display="flex" justifyContent="center">
-            <Button 
-              variant="contained" 
-              color="primary" 
-              size="large" 
-              onClick={handleSubmit} 
-              disabled={submitStatus === 'loading'} 
-              sx={{ px: 6, py: 1.5, fontSize: 18, borderRadius: 2 }}
+
+          {/* 标签页内容 */}
+          <Box sx={{ p: 3 }}>
+            {tab === 0 && <BasicTab formData={formData} setFormData={setFormData} />}
+            {tab === 1 && <BackendsTab formData={formData} setFormData={setFormData} />}
+            {tab === 2 && <CookiesTab formData={formData} setFormData={setFormData} />}
+            {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} />}
+            {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} />}
+            {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} />}
+          </Box>
+
+          {/* 提交按钮 */}
+          <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleSubmit}
+              size="large"
             >
-              {submitStatus === 'loading' ? (
-                <CircularProgress size={28} color="inherit" />
-              ) : (
-                STATIC_CONTENT.submitButton
-              )}
+              {getLabel('submit')}
             </Button>
           </Box>
-          
-          {/* 确认弹窗 */}
-          <Dialog open={openDialog} onClose={handleCloseConfirm} maxWidth="md" fullWidth>
-            <DialogTitle>{STATIC_CONTENT.confirmTitle}</DialogTitle>
-            <DialogContent dividers>
-              <Box bgcolor="grey.100" p={2} borderRadius={2}>
-                <pre style={{ 
-                  whiteSpace: "pre-wrap", 
-                  wordBreak: "break-all", 
-                  fontFamily: 'Fira Mono, monospace', 
-                  fontSize: 15 
-                }}>
-                  {/* 这里应该显示实际的表单数据 */}
-                  {JSON.stringify({ message: "表单数据将在这里显示" }, null, 2)}
-                </pre>
-              </Box>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseConfirm}>{STATIC_CONTENT.cancelButton}</Button>
-              <Button onClick={handleConfirm} variant="contained" color="primary">
-                {STATIC_CONTENT.confirmButton}
-              </Button>
-            </DialogActions>
-          </Dialog>
-          
-          {/* 提交结果提示 */}
-          <Dialog open={submitStatus !== 'idle'} onClose={handleCloseResult}>
-            <DialogTitle>提示</DialogTitle>
-            <DialogContent>
-              {submitStatus === 'success' ? (
-                <Alert severity="success">{STATIC_CONTENT.successMessage}</Alert>
-              ) : submitStatus === 'error' ? (
-                <Alert severity="error">
-                  {STATIC_CONTENT.errorPrefix}{errorMessage}
-                </Alert>
-              ) : null}
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={handleCloseResult}>{STATIC_CONTENT.closeButton}</Button>
-            </DialogActions>
-          </Dialog>
-        </Card>
-      </FormProvider>
-    </LanguageContext.Provider>
+        </Paper>
+      </Box>
+
+      {/* 确认对话框 */}
+      <Dialog open={openDialog} onClose={handleCloseConfirm}>
+        <DialogTitle>{getLabel('confirmSubmit')}</DialogTitle>
+        <DialogContent>
+          <Typography>
+            {getMessage('confirmSubmitMessage')}
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseConfirm}>
+            {getLabel('cancel')}
+          </Button>
+          <Button onClick={handleConfirm} variant="contained">
+            {getLabel('confirm')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* 结果对话框 */}
+      <Dialog open={submitStatus !== 'idle'} onClose={handleCloseResult}>
+        <DialogTitle>
+          {submitStatus === 'success' ? getLabel('success') : getLabel('error')}
+        </DialogTitle>
+        <DialogContent>
+          {submitStatus === 'loading' && (
+            <Box display="flex" alignItems="center" gap={2}>
+              <CircularProgress size={20} />
+              <Typography>{getMessage('submitting')}</Typography>
+            </Box>
+          )}
+          {submitStatus === 'success' && (
+            <Alert severity="success">
+              {getMessage('submitSuccess')}
+            </Alert>
+          )}
+          {submitStatus === 'error' && (
+            <Alert severity="error">
+              {getMessage('submitError')}: {errorMessage}
+            </Alert>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseResult}>
+            {getLabel('close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
   );
 }
 

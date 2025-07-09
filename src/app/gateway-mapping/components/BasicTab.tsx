@@ -1,32 +1,26 @@
 "use client";
-import { useFormData, useFormConfig, useFormValidation } from "../contexts/FormContext";
 import { Box, TextField, MenuItem, Typography, Divider, Paper, Alert, FormControlLabel, Checkbox } from "@mui/material";
 import { useState, useEffect, useCallback } from "react";
-
-// 静态内容
-const STATIC_CONTENT = {
-  title: "Basic Information",
-  validationMessages: {
-    domainRequired: "域名不能为空",
-    pathPatternRequired: "请求路径模式不能为空",
-    backendPathRequired: "后端转发路径不能为空",
-    cmdbProjectRequired: "CMDB项目必须选择"
-  }
-};
+import { useLocalizedText } from "../../../contexts/LanguageContext";
 
 // 组件接口
 interface BasicTabProps {
+  formData: {
+    basic: {
+      domain: string;
+      requestPathPattern: string;
+      backendForwardPath: string;
+      cmdbProject: string;
+    };
+  };
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
   showValidation?: boolean;
   isEditMode?: boolean;
 }
 
-function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps) {
-  const { formData, setFormData } = useFormData();
-  const { config } = useFormConfig();
-  const { validateBasic } = useFormValidation();
+function BasicTab({ formData, setFormData, showValidation = false, isEditMode = false }: BasicTabProps) {
+  const { getLabel, getMessage } = useLocalizedText();
   
-  const { labels, options } = config?.basic || {};
-
   // 添加状态来控制checkbox
   const [sameAsRequestPath, setSameAsRequestPath] = useState(true);
 
@@ -45,7 +39,7 @@ function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps)
       
       // 只有当值不同时才更新，避免无限循环
       if (currentBackendPath !== newBackendPath) {
-        setFormData((prev) => ({
+        setFormData((prev: any) => ({
           ...prev,
           basic: { 
             ...prev.basic, 
@@ -58,7 +52,7 @@ function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps)
 
   // 处理字段变化
   const handleChange = useCallback((field: keyof typeof formData.basic, value: string) => {
-    setFormData((prev) => ({
+    setFormData((prev: any) => ({
       ...prev,
       basic: { ...prev.basic, [field]: value }
     }));
@@ -69,38 +63,52 @@ function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps)
     setSameAsRequestPath(event.target.checked);
   }, []);
 
-  // 获取验证错误
-  const validationErrors = showValidation ? validateBasic() : [];
+  // 验证错误
+  const validationErrors: string[] = [];
+  if (showValidation) {
+    if (!formData.basic?.domain?.trim()) {
+      validationErrors.push(getMessage('domainRequired'));
+    }
+    if (!formData.basic?.requestPathPattern?.trim()) {
+      validationErrors.push(getMessage('pathPatternRequired'));
+    }
+    if (!formData.basic?.backendForwardPath?.trim()) {
+      validationErrors.push(getMessage('backendPathRequired'));
+    }
+    if (!formData.basic?.cmdbProject) {
+      validationErrors.push(getMessage('cmdbProjectRequired'));
+    }
+  }
 
   return (
     <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
       <Typography variant="h6" fontWeight={600} gutterBottom>
-        {STATIC_CONTENT.title}
+        {getLabel('basicInformation')}
       </Typography>
       <Divider sx={{ mb: 2 }} />
       
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
           <TextField
-            label={<b>{labels?.domain || "Domain"} *</b>}
+            label={<b>{getLabel('domain')} *</b>}
             required
             fullWidth
             disabled={isEditMode}
             value={formData.basic?.domain || ""}
             onChange={(e) => handleChange("domain", e.target.value)}
             error={showValidation && !formData.basic?.domain?.trim()}
-            helperText={showValidation && !formData.basic?.domain?.trim() ? STATIC_CONTENT.validationMessages.domainRequired : ""}
+            helperText={showValidation && !formData.basic?.domain?.trim() ? getMessage('domainRequired') : ""}
           />
           
           <TextField
-            label={<b>{labels?.requestPathPattern || "Request Path Pattern"} *</b>}
+            label={<b>{getLabel('requestPathPattern')} *</b>}
             required
             fullWidth
             disabled={isEditMode}
             value={formData.basic?.requestPathPattern || ""}
             onChange={(e) => handleChange("requestPathPattern", e.target.value)}
             error={showValidation && !formData.basic?.requestPathPattern?.trim()}
-            helperText={showValidation && !formData.basic?.requestPathPattern?.trim() ? STATIC_CONTENT.validationMessages.pathPatternRequired : ""}
+            helperText={showValidation && !formData.basic?.requestPathPattern?.trim() ? getMessage('pathPatternRequired') : ""}
           />
         </Box>
         
@@ -112,19 +120,19 @@ function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps)
               color="primary"
             />
           }
-          label="后端转发路径与请求路径模式相同"
+          label={getLabel('sameAsRequestPath')}
         />
         
         {!sameAsRequestPath && (
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
             <TextField
-              label={<b>{labels?.backendForwardPath || "Backend Forward Path"} *</b>}
+              label={<b>{getLabel('backendForwardPath')} *</b>}
               required
               fullWidth
               value={formData.basic?.backendForwardPath || ""}
               onChange={(e) => handleChange("backendForwardPath", e.target.value)}
               error={showValidation && !formData.basic?.backendForwardPath?.trim()}
-              helperText={showValidation && !formData.basic?.backendForwardPath?.trim() ? STATIC_CONTENT.validationMessages.backendPathRequired : ""}
+              helperText={showValidation && !formData.basic?.backendForwardPath?.trim() ? getMessage('backendPathRequired') : ""}
             />
           </Box>
         )}
@@ -132,25 +140,23 @@ function BasicTab({ showValidation = false, isEditMode = false }: BasicTabProps)
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
           <TextField
             select
-            label={<b>{labels?.cmdbProject || "CMDB Project"} *</b>}
+            label={<b>{getLabel('cmdbProject')} *</b>}
             required
             fullWidth
             value={formData.basic?.cmdbProject || ""}
             onChange={(e) => handleChange("cmdbProject", e.target.value)}
             error={showValidation && !formData.basic?.cmdbProject}
-            helperText={showValidation && !formData.basic?.cmdbProject ? STATIC_CONTENT.validationMessages.cmdbProjectRequired : ""}
+            helperText={showValidation && !formData.basic?.cmdbProject ? getMessage('cmdbProjectRequired') : ""}
           >
-            {(options?.cmdbProject || []).map((item) => (
-              <MenuItem key={item.value} value={item.value}>
-                {item.label}
-              </MenuItem>
-            ))}
+            <MenuItem value="a">Project A</MenuItem>
+            <MenuItem value="b">Project B</MenuItem>
+            <MenuItem value="c">Project C</MenuItem>
           </TextField>
         </Box>
       </Box>
       
       <Alert severity="info" sx={{ mt: 2 }}>
-        {labels?.uniqueTip || "Domain + Path Pattern must be unique."}
+        {getLabel('uniqueTip')}
       </Alert>
       
       {showValidation && validationErrors.length > 0 && (

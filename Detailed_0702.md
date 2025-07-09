@@ -5,16 +5,15 @@
 ### US-F-008: Version History Management Interface
 
 **Description:**
-As an administrator, I want to view configuration change history, including the last 5 changes, with options to view more versions, to understand the configuration evolution process.
+As an administrator, I want to view configuration change history in EH Edit page as a new tab, including the last 5 changes, with options to view more versions, to understand the configuration evolution process.
 
 **Acceptance Criteria:**
 - Display the last 5 version changes by default
 - Provide a "View More" button to load additional versions
-- Show detailed change information including version number, description, creator, and timestamp
+- Show detailed change information including version number, short description, creator, and timestamp
 - Support search and filtering of change records
-- Display version status (active, inactive, draft) with visual indicators
+- Display latest version status
 - Show current version indicator
-- Provide export functionality for version configurations
 
 **Technical Details:**
 
