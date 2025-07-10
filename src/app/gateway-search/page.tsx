@@ -36,7 +36,7 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import FilterListIcon from '@mui/icons-material/FilterList';
 import { useRouter } from 'next/navigation';
-import { LanguageContext } from '../gateway-mapping/page';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // Gateway配置接口
 interface GatewayConfig {
@@ -70,7 +70,7 @@ interface UserPermissions {
 
 export default function GatewaySearchPage() {
   const router = useRouter();
-  const { lang } = useContext(LanguageContext) || { lang: 'en' };
+  const { language } = useLanguage();
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [applicationFilter, setApplicationFilter] = useState<string>('all');
@@ -177,18 +177,18 @@ export default function GatewaySearchPage() {
   const getStatusLabel = (status: string) => {
     switch (status) {
       case 'active':
-        return lang === 'zh' ? '生效' : 'Active';
+        return language === 'zh' ? '生效' : 'Active';
       case 'inactive':
-        return lang === 'zh' ? '未生效' : 'Inactive';
+        return language === 'zh' ? '未生效' : 'Inactive';
       case 'draft':
-        return lang === 'zh' ? '草稿' : 'Draft';
+        return language === 'zh' ? '草稿' : 'Draft';
       default:
         return status;
     }
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString(lang === 'zh' ? 'zh-CN' : 'en-US', {
+    return new Date(dateString).toLocaleDateString(language === 'zh' ? 'zh-CN' : 'en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',

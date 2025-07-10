@@ -16,7 +16,7 @@ import {
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import SaveIcon from '@mui/icons-material/Save';
 import { useRouter, useParams } from 'next/navigation';
-import { LanguageContext } from '../../page';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import BasicTab from '../../components/BasicTab';
 import BackendsTab from '../../components/BackendsTab';
 import HeadersTab from '../../components/HeadersTab';

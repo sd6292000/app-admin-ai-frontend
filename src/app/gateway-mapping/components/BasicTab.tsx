@@ -1,7 +1,10 @@
 "use client";
-import { Box, TextField, MenuItem, Typography, Divider, Paper, Alert, FormControlLabel, Checkbox } from "@mui/material";
+import { Box, Typography, Divider, Paper, Alert, FormControlLabel, Checkbox } from "@mui/material";
 import { useState, useEffect, useCallback } from "react";
 import { useLocalizedText } from "../../../contexts/LanguageContext";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import FormField from "../../../components/FormField";
+import { getFormConfig, validateForm, FieldConfig } from "../../../lib/i18n";
 
 // 组件接口
 interface BasicTabProps {
@@ -20,9 +23,13 @@ interface BasicTabProps {
 
 function BasicTab({ formData, setFormData, showValidation = false, isEditMode = false }: BasicTabProps) {
   const { getLabel, getMessage } = useLocalizedText();
+  const { language, metaInfo } = useLanguage();
   
   // 添加状态来控制checkbox
   const [sameAsRequestPath, setSameAsRequestPath] = useState(true);
+
+  // 获取表单配置
+  const formConfig = metaInfo ? getFormConfig(metaInfo, 'gateway-mapping', 'basic') : null;
 
   // 初始化checkbox状态 - 检查当前值是否相同
   useEffect(() => {
@@ -51,10 +58,10 @@ function BasicTab({ formData, setFormData, showValidation = false, isEditMode = 
   }, [sameAsRequestPath, formData.basic?.requestPathPattern, setFormData]);
 
   // 处理字段变化
-  const handleChange = useCallback((field: keyof typeof formData.basic, value: string) => {
+  const handleFieldChange = useCallback((fieldKey: string, value: any) => {
     setFormData((prev: any) => ({
       ...prev,
-      basic: { ...prev.basic, [field]: value }
+      basic: { ...prev.basic, [fieldKey]: value }
     }));
   }, [setFormData]);
 
@@ -63,21 +70,25 @@ function BasicTab({ formData, setFormData, showValidation = false, isEditMode = 
     setSameAsRequestPath(event.target.checked);
   }, []);
 
-  // 验证错误
+  // 验证表单
   const validationErrors: string[] = [];
-  if (showValidation) {
-    if (!formData.basic?.domain?.trim()) {
-      validationErrors.push(getMessage('domainRequired'));
-    }
-    if (!formData.basic?.requestPathPattern?.trim()) {
-      validationErrors.push(getMessage('pathPatternRequired'));
-    }
-    if (!formData.basic?.backendForwardPath?.trim()) {
-      validationErrors.push(getMessage('backendPathRequired'));
-    }
-    if (!formData.basic?.cmdbProject) {
-      validationErrors.push(getMessage('cmdbProjectRequired'));
-    }
+  if (showValidation && formConfig) {
+    const errors = validateForm(formConfig, formData.basic, language);
+    validationErrors.push(...errors.map(error => error.message));
+  }
+
+  if (!formConfig) {
+    return (
+      <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+        <Typography variant="h6" fontWeight={600} gutterBottom>
+          {getLabel('basicInformation')}
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Alert severity="info">
+          {getMessage('loading')}
+        </Alert>
+      </Paper>
+    );
   }
 
   return (
@@ -89,27 +100,31 @@ function BasicTab({ formData, setFormData, showValidation = false, isEditMode = 
       
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-          <TextField
-            label={<b>{getLabel('domain')} *</b>}
-            required
-            fullWidth
-            disabled={isEditMode}
-            value={formData.basic?.domain || ""}
-            onChange={(e) => handleChange("domain", e.target.value)}
-            error={showValidation && !formData.basic?.domain?.trim()}
-            helperText={showValidation && !formData.basic?.domain?.trim() ? getMessage('domainRequired') : ""}
-          />
+          {/* Domain字段 */}
+          {formConfig.fields.find(f => f.key === 'domain') && (
+            <FormField
+              field={formConfig.fields.find(f => f.key === 'domain')!}
+              value={formData.basic?.domain || ""}
+              onChange={(value) => handleFieldChange("domain", value)}
+              language={language}
+              allValues={formData.basic}
+              showValidation={showValidation}
+              disabled={isEditMode}
+            />
+          )}
           
-          <TextField
-            label={<b>{getLabel('requestPathPattern')} *</b>}
-            required
-            fullWidth
-            disabled={isEditMode}
-            value={formData.basic?.requestPathPattern || ""}
-            onChange={(e) => handleChange("requestPathPattern", e.target.value)}
-            error={showValidation && !formData.basic?.requestPathPattern?.trim()}
-            helperText={showValidation && !formData.basic?.requestPathPattern?.trim() ? getMessage('pathPatternRequired') : ""}
-          />
+          {/* Request Path Pattern字段 */}
+          {formConfig.fields.find(f => f.key === 'requestPathPattern') && (
+            <FormField
+              field={formConfig.fields.find(f => f.key === 'requestPathPattern')!}
+              value={formData.basic?.requestPathPattern || ""}
+              onChange={(value) => handleFieldChange("requestPathPattern", value)}
+              language={language}
+              allValues={formData.basic}
+              showValidation={showValidation}
+              disabled={isEditMode}
+            />
+          )}
         </Box>
         
         <FormControlLabel
@@ -125,33 +140,32 @@ function BasicTab({ formData, setFormData, showValidation = false, isEditMode = 
         
         {!sameAsRequestPath && (
           <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-            <TextField
-              label={<b>{getLabel('backendForwardPath')} *</b>}
-              required
-              fullWidth
-              value={formData.basic?.backendForwardPath || ""}
-              onChange={(e) => handleChange("backendForwardPath", e.target.value)}
-              error={showValidation && !formData.basic?.backendForwardPath?.trim()}
-              helperText={showValidation && !formData.basic?.backendForwardPath?.trim() ? getMessage('backendPathRequired') : ""}
-            />
+            {/* Backend Forward Path字段 */}
+            {formConfig.fields.find(f => f.key === 'backendForwardPath') && (
+              <FormField
+                field={formConfig.fields.find(f => f.key === 'backendForwardPath')!}
+                value={formData.basic?.backendForwardPath || ""}
+                onChange={(value) => handleFieldChange("backendForwardPath", value)}
+                language={language}
+                allValues={formData.basic}
+                showValidation={showValidation}
+              />
+            )}
           </Box>
         )}
         
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 3 }}>
-          <TextField
-            select
-            label={<b>{getLabel('cmdbProject')} *</b>}
-            required
-            fullWidth
-            value={formData.basic?.cmdbProject || ""}
-            onChange={(e) => handleChange("cmdbProject", e.target.value)}
-            error={showValidation && !formData.basic?.cmdbProject}
-            helperText={showValidation && !formData.basic?.cmdbProject ? getMessage('cmdbProjectRequired') : ""}
-          >
-            <MenuItem value="a">Project A</MenuItem>
-            <MenuItem value="b">Project B</MenuItem>
-            <MenuItem value="c">Project C</MenuItem>
-          </TextField>
+          {/* CMDB Project字段 */}
+          {formConfig.fields.find(f => f.key === 'cmdbProject') && (
+            <FormField
+              field={formConfig.fields.find(f => f.key === 'cmdbProject')!}
+              value={formData.basic?.cmdbProject || ""}
+              onChange={(value) => handleFieldChange("cmdbProject", value)}
+              language={language}
+              allValues={formData.basic}
+              showValidation={showValidation}
+            />
+          )}
         </Box>
       </Box>
       

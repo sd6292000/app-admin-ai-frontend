@@ -36,7 +36,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import CancelIcon from '@mui/icons-material/Cancel';
 import ScheduleIcon from '@mui/icons-material/Schedule';
 import { useRouter, useParams } from 'next/navigation';
-import { LanguageContext } from '../../page';
+import { useLanguage } from '../../../contexts/LanguageContext';
 
 // Gateway配置接口
 interface GatewayConfig {

@@ -1,16 +1,15 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
-import { LanguageContext } from './gateway-mapping/page';
 import { useRouter } from 'next/navigation';
 import SearchIcon from '@mui/icons-material/Search';
 import SettingsIcon from '@mui/icons-material/Settings';
-import { useContext } from 'react';
 import { Card, CardContent, Typography } from '@mui/material';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export default function Home() {
   const router = useRouter();
-  const { lang } = useContext(LanguageContext) || { lang: 'en' };
+  const { language } = useLanguage();
 
   const handleNavigate = (path: string) => {
     router.push(path);
@@ -21,7 +20,7 @@ export default function Home() {
       <main className={styles.main}>
         <div className={styles.description}>
           <p>
-            {lang === 'zh' ? 'Gateway管理系统' : 'Gateway Management System'}
+            {language === 'zh' ? 'Gateway管理系统' : 'Gateway Management System'}
           </p>
         </div>
 
@@ -45,10 +44,10 @@ export default function Home() {
             <CardContent>
               <Typography variant="h5" component="div" gutterBottom>
                 <SettingsIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                {lang === 'zh' ? 'Gateway配置' : 'Gateway Configuration'}
+                {language === 'zh' ? 'Gateway配置' : 'Gateway Configuration'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {lang === 'zh' 
+                {language === 'zh' 
                   ? '创建和管理Gateway路由配置，包括后端服务器、请求头、Cookies等设置'
                   : 'Create and manage Gateway route configurations, including backend servers, headers, cookies, and more'
                 }
@@ -64,10 +63,10 @@ export default function Home() {
             <CardContent>
               <Typography variant="h5" component="div" gutterBottom>
                 <SearchIcon sx={{ mr: 1, verticalAlign: 'middle' }} />
-                {lang === 'zh' ? '配置搜索' : 'Configuration Search'}
+                {language === 'zh' ? '配置搜索' : 'Configuration Search'}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                {lang === 'zh' 
+                {language === 'zh' 
                   ? '快速搜索和查看现有的Gateway配置，支持按域名、应用、状态等过滤'
                   : 'Quickly search and view existing Gateway configurations with filtering by domain, application, status, etc.'
                 }

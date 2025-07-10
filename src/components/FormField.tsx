@@ -1,197 +1,207 @@
 "use client";
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextField,
-  Select,
   MenuItem,
   FormControl,
   InputLabel,
-  Checkbox,
+  Select,
   FormControlLabel,
   Switch,
+  Checkbox,
   FormHelperText,
-  OutlinedInput,
   Chip,
-  Box
+  Box,
+  Typography
 } from '@mui/material';
-import { FieldConfig, ValidationError } from '../lib/i18n';
 import { useLocalizedText } from '../contexts/LanguageContext';
+import { 
+  FieldConfig, 
+  validateField, 
+  getFieldLabel, 
+  getFieldPlaceholder, 
+  getOptionLabel,
+  shouldShowField,
+  getFieldDefaultValue,
+  Language
+} from '../lib/i18n';
 
 interface FormFieldProps {
   field: FieldConfig;
   value: any;
   onChange: (value: any) => void;
-  error?: ValidationError | null;
+  language: Language;
+  allValues?: Record<string, any>;
+  showValidation?: boolean;
   disabled?: boolean;
-  fullWidth?: boolean;
+  error?: string;
 }
 
 export default function FormField({
   field,
   value,
   onChange,
-  error,
+  language,
+  allValues = {},
+  showValidation = false,
   disabled = false,
-  fullWidth = true
+  error: externalError
 }: FormFieldProps) {
-  const { getText } = useLocalizedText();
+  const { getValidationMessage } = useLocalizedText();
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  const label = getText(field.label);
-  const placeholder = getText(field.placeholder);
-  const errorMessage = error?.message || '';
+  // 检查字段是否应该显示
+  const shouldShow = shouldShowField(field, allValues);
+  if (!shouldShow) return null;
 
-  const handleChange = (event: any) => {
-    let newValue = event.target.value;
-    
-    // 处理不同类型的值
-    if (field.type === 'number') {
-      newValue = newValue === '' ? undefined : Number(newValue);
-    } else if (field.type === 'checkbox') {
-      newValue = event.target.checked;
-    } else if (field.type === 'switch') {
-      newValue = event.target.checked;
+  // 验证字段值
+  useEffect(() => {
+    if (showValidation) {
+      const error = validateField(field, value, language, allValues);
+      setValidationError(error ? error.message : null);
+    } else {
+      setValidationError(null);
     }
-    
+  }, [field, value, language, allValues, showValidation]);
+
+  const hasError = showValidation && (validationError || externalError);
+  const errorMessage = externalError || validationError;
+
+  // 处理值变化
+  const handleChange = (newValue: any) => {
     onChange(newValue);
   };
 
-  const renderField = () => {
-    switch (field.type) {
-      case 'text':
-      case 'textarea':
-        return (
-          <TextField
-            label={label}
+  // 根据字段类型渲染不同的组件
+  switch (field.type) {
+    case 'text':
+    case 'textarea':
+      return (
+        <TextField
+          label={getFieldLabel(field, language)}
+          placeholder={getFieldPlaceholder(field, language)}
+          value={value || ''}
+          onChange={(e) => handleChange(e.target.value)}
+          required={field.required}
+          disabled={disabled}
+          error={!!hasError}
+          helperText={errorMessage}
+          multiline={field.type === 'textarea'}
+          rows={field.type === 'textarea' ? 4 : 1}
+          fullWidth
+        />
+      );
+
+    case 'number':
+      return (
+        <TextField
+          label={getFieldLabel(field, language)}
+          placeholder={getFieldPlaceholder(field, language)}
+          value={value || ''}
+          onChange={(e) => handleChange(Number(e.target.value))}
+          required={field.required}
+          disabled={disabled}
+          error={!!hasError}
+          helperText={errorMessage}
+          type="number"
+          fullWidth
+        />
+      );
+
+    case 'select':
+      return (
+        <FormControl fullWidth error={!!hasError} disabled={disabled}>
+          <InputLabel>{getFieldLabel(field, language)}</InputLabel>
+          <Select
             value={value || ''}
-            onChange={handleChange}
-            placeholder={placeholder}
-            multiline={field.type === 'textarea'}
-            rows={field.type === 'textarea' ? 3 : 1}
-            error={!!error}
-            helperText={errorMessage}
-            disabled={disabled}
-            fullWidth={fullWidth}
-            required={field.required}
-          />
-        );
+            onChange={(e) => handleChange(e.target.value)}
+            label={getFieldLabel(field, language)}
+          >
+            {field.options?.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {getOptionLabel(option, language)}
+              </MenuItem>
+            ))}
+          </Select>
+          {hasError && <FormHelperText>{errorMessage}</FormHelperText>}
+        </FormControl>
+      );
 
-      case 'number':
-        return (
-          <TextField
-            label={label}
-            type="number"
-            value={value || ''}
-            onChange={handleChange}
-            placeholder={placeholder}
-            error={!!error}
-            helperText={errorMessage}
-            disabled={disabled}
-            fullWidth={fullWidth}
-            required={field.required}
-            inputProps={{
-              min: field.validation?.find(v => v.type === 'min')?.value,
-              max: field.validation?.find(v => v.type === 'max')?.value
-            }}
-          />
-        );
+    case 'multiselect':
+      return (
+        <FormControl fullWidth error={!!hasError} disabled={disabled}>
+          <InputLabel>{getFieldLabel(field, language)}</InputLabel>
+          <Select
+            multiple
+            value={Array.isArray(value) ? value : []}
+            onChange={(e) => handleChange(e.target.value)}
+            label={getFieldLabel(field, language)}
+            renderValue={(selected) => (
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                {selected.map((value) => {
+                  const option = field.options?.find(opt => opt.value === value);
+                  return (
+                    <Chip 
+                      key={value} 
+                      label={option ? getOptionLabel(option, language) : value} 
+                      size="small" 
+                    />
+                  );
+                })}
+              </Box>
+            )}
+          >
+            {field.options?.map((option) => (
+              <MenuItem key={option.value} value={option.value}>
+                {getOptionLabel(option, language)}
+              </MenuItem>
+            ))}
+          </Select>
+          {hasError && <FormHelperText>{errorMessage}</FormHelperText>}
+        </FormControl>
+      );
 
-      case 'select':
-        return (
-          <FormControl fullWidth={fullWidth} error={!!error} disabled={disabled} required={field.required}>
-            <InputLabel>{label}</InputLabel>
-            <Select
-              value={value || ''}
-              onChange={handleChange}
-              label={label}
-            >
-              {field.options?.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {getText(option.label)}
-                </MenuItem>
-              ))}
-            </Select>
-            {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
-          </FormControl>
-        );
+    case 'checkbox':
+      return (
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={Boolean(value)}
+              onChange={(e) => handleChange(e.target.checked)}
+              disabled={disabled}
+            />
+          }
+          label={getFieldLabel(field, language)}
+        />
+      );
 
-      case 'multiselect':
-        return (
-          <FormControl fullWidth={fullWidth} error={!!error} disabled={disabled} required={field.required}>
-            <InputLabel>{label}</InputLabel>
-            <Select
-              multiple
-              value={Array.isArray(value) ? value : []}
-              onChange={handleChange}
-              input={<OutlinedInput label={label} />}
-              renderValue={(selected) => (
-                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                  {selected.map((value) => {
-                    const option = field.options?.find(opt => opt.value === value);
-                    return (
-                      <Chip 
-                        key={value} 
-                        label={option ? getText(option.label) : value} 
-                        size="small" 
-                      />
-                    );
-                  })}
-                </Box>
-              )}
-            >
-              {field.options?.map((option) => (
-                <MenuItem key={option.value} value={option.value}>
-                  {getText(option.label)}
-                </MenuItem>
-              ))}
-            </Select>
-            {errorMessage && <FormHelperText>{errorMessage}</FormHelperText>}
-          </FormControl>
-        );
+    case 'switch':
+      return (
+        <FormControlLabel
+          control={
+            <Switch
+              checked={Boolean(value)}
+              onChange={(e) => handleChange(e.target.checked)}
+              disabled={disabled}
+            />
+          }
+          label={getFieldLabel(field, language)}
+        />
+      );
 
-      case 'checkbox':
-        return (
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={Boolean(value)}
-                onChange={handleChange}
-                disabled={disabled}
-              />
-            }
-            label={label}
-          />
-        );
-
-      case 'switch':
-        return (
-          <FormControlLabel
-            control={
-              <Switch
-                checked={Boolean(value)}
-                onChange={handleChange}
-                disabled={disabled}
-              />
-            }
-            label={label}
-          />
-        );
-
-      default:
-        return (
-          <TextField
-            label={label}
-            value={value || ''}
-            onChange={handleChange}
-            placeholder={placeholder}
-            error={!!error}
-            helperText={errorMessage}
-            disabled={disabled}
-            fullWidth={fullWidth}
-            required={field.required}
-          />
-        );
-    }
-  };
-
-  return renderField();
+    default:
+      return (
+        <TextField
+          label={getFieldLabel(field, language)}
+          placeholder={getFieldPlaceholder(field, language)}
+          value={value || ''}
+          onChange={(e) => handleChange(e.target.value)}
+          required={field.required}
+          disabled={disabled}
+          error={!!hasError}
+          helperText={errorMessage}
+          fullWidth
+        />
+      );
+  }
 } 

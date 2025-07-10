@@ -1,28 +1,42 @@
 "use client";
-import { useState, useContext } from "react";
-import { Box, TextField, MenuItem, Typography, Checkbox, FormControlLabel, Paper, Divider, IconButton, Alert } from "@mui/material";
+import { useState } from "react";
+import { Box, Typography, Paper, Divider, IconButton, Alert } from "@mui/material";
 import AddCircleOutlineIcon from '@mui/icons-material/AddCircleOutline';
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
-import { useFormData, useFormConfig } from "../contexts/FormContext";
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { useLocalizedText } from "../../../contexts/LanguageContext";
+import FormField from "../../../components/FormField";
+import { getFormConfig, validateForm } from "../../../lib/i18n";
 
-const strategies = [
-  { label: "Passthrough", value: "passthrough" },
-  { label: "Persist", value: "persist" },
-];
+// Cookie异常接口
+interface CookieException {
+  cookieName: string;
+  strategy: 'passthrough' | 'persist';
+}
 
-// RFC6265 Cookie Name 校验正则
-const rfc6265CookieName = /^[!#$%&'*+\-.^_`|~0-9a-zA-Z]+$/;
+// Cookie配置接口
+interface CookieConfig {
+  globalStrategy: 'passthrough' | 'persist';
+  exceptions: CookieException[];
+}
 
-export default function CookiesTab() {
-  const { formData, setFormData } = useFormData();
-  const formConfig = useFormConfig();
-  if (!formConfig) return null;
-  const { labels, options } = formConfig.cookies || {};
+// 组件接口
+interface CookiesTabProps {
+  formData: {
+    cookies: CookieConfig;
+  };
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  showValidation?: boolean;
+}
 
-  // 初始化excludedCookies
-  const excludedCookies = formData.cookies?.excludedCookies?.length > 0 ? formData.cookies.excludedCookies : [{ name: "", startedWith: false, error: "" }];
-  const globalStrategy = formData.cookies?.globalStrategy || "";
+export default function CookiesTab({ formData, setFormData, showValidation = false }: CookiesTabProps) {
+  const { getLabel, getMessage } = useLocalizedText();
+  const { language, metaInfo } = useLanguage();
+  
+  // 获取表单配置
+  const formConfig = metaInfo ? getFormConfig(metaInfo, 'gateway-mapping', 'cookies') : null;
 
+  // 处理全局策略变化
   const handleGlobalStrategyChange = (value: string) => {
     setFormData((prev: any) => ({
       ...prev,
@@ -30,80 +44,174 @@ export default function CookiesTab() {
     }));
   };
 
-  const handleExcludedChange = (idx: number, field: "name" | "startedWith", value: any) => {
-    const arr = [...excludedCookies];
-    if (field === "name") {
-      arr[idx].name = value;
-      arr[idx].error = value && !rfc6265CookieName.test(value) ? "Invalid Cookie Name (RFC6265)" : "";
-    } else {
-      arr[idx].startedWith = value;
-    }
+  // 处理异常变化
+  const handleExceptionChange = (idx: number, field: keyof CookieException, value: any) => {
+    const arr = [...formData.cookies.exceptions];
+    arr[idx] = { ...arr[idx], [field]: value };
     setFormData((prev: any) => ({
       ...prev,
-      cookies: { ...prev.cookies, excludedCookies: arr }
+      cookies: { ...prev.cookies, exceptions: arr }
     }));
   };
 
-  const handleAddExcluded = () => {
+  // 添加异常
+  const handleAddException = () => {
     setFormData((prev: any) => ({
       ...prev,
-      cookies: { ...prev.cookies, excludedCookies: [...excludedCookies, { name: "", startedWith: false, error: "" }] }
+      cookies: { 
+        ...prev.cookies, 
+        exceptions: [...formData.cookies.exceptions, { 
+          cookieName: "", 
+          strategy: 'passthrough' 
+        }] 
+      }
     }));
   };
 
-  const handleRemoveExcluded = (idx: number) => {
-    const arr = [...excludedCookies];
+  // 删除异常
+  const handleRemoveException = (idx: number) => {
+    const arr = [...formData.cookies.exceptions];
     arr.splice(idx, 1);
     setFormData((prev: any) => ({
       ...prev,
-      cookies: { ...prev.cookies, excludedCookies: arr.length ? arr : [{ name: "", startedWith: false, error: "" }] }
+      cookies: { 
+        ...prev.cookies, 
+        exceptions: arr.length ? arr : [{ 
+          cookieName: "", 
+          strategy: 'passthrough' 
+        }] 
+      }
     }));
   };
 
+  // 验证表单
+  const validationErrors: string[] = [];
+  if (showValidation && formConfig) {
+    const errors = validateForm(formConfig, formData.cookies, language);
+    validationErrors.push(...errors.map(error => error.message));
+  }
+
+  if (!formConfig) {
+    return (
+      <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+        <Typography variant="h6" fontWeight={600} gutterBottom>
+          {getLabel('cookies')}
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Alert severity="info">
+          {getMessage('loading')}
+        </Alert>
+      </Paper>
+    );
+  }
+
   return (
     <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
-      <Typography variant="h6" fontWeight={600} gutterBottom>Cookie Strategy</Typography>
+      <Typography variant="h6" fontWeight={600} gutterBottom>
+        {getLabel('cookies')}
+      </Typography>
       <Divider sx={{ mb: 2 }} />
-      <TextField
-        select
-        label={labels?.globalStrategy || "Global Cookie Strategy"}
-        fullWidth
-        value={globalStrategy}
-        onChange={e => handleGlobalStrategyChange(e.target.value)}
-      >
-        {strategies.map((item) => (
-          <MenuItem key={item.value} value={item.value}>{item.label}</MenuItem>
-        ))}
-      </TextField>
-      <Typography variant="subtitle2" mt={2}>{labels?.exception || "Excluded Cookies"}</Typography>
-      {excludedCookies.map((cookie, idx) => (
-        <Box key={idx} display="flex" gap={2} alignItems="center" mb={1} p={1} bgcolor="grey.50" borderRadius={1}>
-          <TextField
-            label={labels?.cookieName || "Cookie Name"}
-            value={cookie.name}
-            error={!!cookie.error}
-            helperText={cookie.error || "RFC6265: !#$%&'*+-.^_`|~0-9a-zA-Z"}
-            onChange={e => handleExcludedChange(idx, "name", e.target.value)}
-            required
+      
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {/* 全局策略字段 */}
+        {formConfig.fields.find(f => f.key === 'globalStrategy') && (
+          <FormField
+            field={formConfig.fields.find(f => f.key === 'globalStrategy')!}
+            value={formData.cookies?.globalStrategy || ""}
+            onChange={handleGlobalStrategyChange}
+            language={language}
+            allValues={formData.cookies}
+            showValidation={showValidation}
           />
-          <FormControlLabel
-            control={
-              <Checkbox
-                checked={cookie.startedWith}
-                onChange={e => handleExcludedChange(idx, "startedWith", e.target.checked)}
+        )}
+
+        {/* 异常列表 */}
+        <Box>
+          <Typography variant="subtitle2" gutterBottom>
+            {getLabel('cookieExceptions')}
+          </Typography>
+          {formData.cookies?.exceptions?.map((exception, idx) => (
+            <Box key={idx} sx={{ 
+              display: 'flex', 
+              gap: 2, 
+              alignItems: 'center', 
+              mb: 1, 
+              p: 2, 
+              bgcolor: 'grey.50', 
+              borderRadius: 1 
+            }}>
+              {/* Cookie名称字段 */}
+              <FormField
+                field={{
+                  key: 'cookieName',
+                  label: { en: 'Cookie Name', zh: 'Cookie名称' },
+                  type: 'text',
+                  required: true,
+                  placeholder: { en: 'Enter cookie name', zh: '请输入cookie名称' },
+                  validation: [
+                    { type: 'required', message: 'Cookie name is required' },
+                    { type: 'pattern', value: '^[!#$%&\'*+\\-.^_`|~0-9a-zA-Z]+$', message: 'Invalid cookie name format' }
+                  ]
+                }}
+                value={exception.cookieName}
+                onChange={(value) => handleExceptionChange(idx, 'cookieName', value)}
+                language={language}
+                allValues={exception}
+                showValidation={showValidation}
               />
-            }
-            label={labels?.startedWith || "Started With"}
-          />
-          {excludedCookies.length > 1 && (
-            <IconButton color="error" onClick={() => handleRemoveExcluded(idx)}><RemoveCircleOutlineIcon /></IconButton>
-          )}
+
+              {/* 策略字段 */}
+              <FormField
+                field={{
+                  key: 'strategy',
+                  label: { en: 'Strategy', zh: '策略' },
+                  type: 'select',
+                  required: true,
+                  options: [
+                    { label: { en: 'Passthrough', zh: '透传' }, value: 'passthrough' },
+                    { label: { en: 'Persist', zh: '持久化' }, value: 'persist' }
+                  ]
+                }}
+                value={exception.strategy}
+                onChange={(value) => handleExceptionChange(idx, 'strategy', value)}
+                language={language}
+                allValues={exception}
+                showValidation={showValidation}
+              />
+
+              {formData.cookies.exceptions.length > 1 && (
+                <IconButton 
+                  color="error" 
+                  onClick={() => handleRemoveException(idx)}
+                  size="small"
+                >
+                  <RemoveCircleOutlineIcon />
+                </IconButton>
+              )}
+            </Box>
+          ))}
+          
+          <Box display="flex" justifyContent="flex-end" mt={1}>
+            <IconButton color="primary" onClick={handleAddException}>
+              <AddCircleOutlineIcon />
+            </IconButton>
+          </Box>
         </Box>
-      ))}
-      <Box display="flex" justifyContent="flex-end">
-        <IconButton color="primary" onClick={handleAddExcluded}><AddCircleOutlineIcon /></IconButton>
       </Box>
-      <Alert severity="info" sx={{ mt: 2 }}>{labels?.rfcTip || "Cookie name must conform to RFC6265."}</Alert>
+      
+      <Alert severity="info" sx={{ mt: 2 }}>
+        {getLabel('cookieTip')}
+      </Alert>
+
+      {showValidation && validationErrors.length > 0 && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          <Typography variant="body2" component="div">
+            {validationErrors.map((error, index) => (
+              <div key={index}>• {error}</div>
+            ))}
+          </Typography>
+        </Alert>
+      )}
     </Paper>
   );
 } 

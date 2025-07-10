@@ -27,17 +27,23 @@ interface FormDataType {
   };
   backends: Array<{
     hostname: string;
-    port: number;
+    port: string;
     protocol: string;
     region: string;
     dataCenter: string;
     enabled: boolean;
+    rewriteHost?: boolean;
+    webProxyEnabled?: boolean;
+    proxyHost?: string;
+    proxyPort?: string;
+    proxyUsername?: string;
+    proxyPassword?: string;
   }>;
   cookies: {
-    globalStrategy: string;
+    globalStrategy: 'passthrough' | 'persist';
     exceptions: Array<{
-      name: string;
-      strategy: string;
+      cookieName: string;
+      strategy: 'passthrough' | 'persist';
     }>;
   };
   headers: {
@@ -49,7 +55,7 @@ interface FormDataType {
     pagePath: string;
   }>;
   limiters: {
-    ipRules: Array<{ value: string; mode: string }>;
+    ipRules: Array<{ ipOrCidr: string; mode: 'allow' | 'deny' }>;
     maxConcurrent: string;
     maxPerMinute: string;
     allowedMethods: string[];
@@ -208,12 +214,12 @@ function GatewayMappingPage() {
 
           {/* 标签页内容 */}
           <Box sx={{ p: 3 }}>
-            {tab === 0 && <BasicTab formData={formData} setFormData={setFormData} />}
-            {tab === 1 && <BackendsTab formData={formData} setFormData={setFormData} />}
-            {tab === 2 && <CookiesTab formData={formData} setFormData={setFormData} />}
-            {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} />}
-            {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} />}
-            {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} />}
+            {tab === 0 && <BasicTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 1 && <BackendsTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 2 && <CookiesTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
           </Box>
 
           {/* 提交按钮 */}

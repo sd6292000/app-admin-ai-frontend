@@ -2,14 +2,10 @@
 import { useState, useEffect } from "react";
 import { 
   Box, 
-  TextField, 
   Typography, 
-  MenuItem, 
   Paper, 
   IconButton, 
   Divider, 
-  Checkbox, 
-  FormControlLabel,
   Button,
   Alert,
   Chip,
@@ -27,32 +23,10 @@ import ErrorIcon from '@mui/icons-material/Error';
 import WarningIcon from '@mui/icons-material/Warning';
 import NetworkCheckIcon from '@mui/icons-material/NetworkCheck';
 import InfoIcon from '@mui/icons-material/Info';
-import { useFormData, useFormConfig } from "../contexts/FormContext";
-
-const protocols = [
-  { label: "HTTP", value: "HTTP" },
-  { label: "HTTPS", value: "HTTPS" },
-];
-
-const regions = [
-  { label: "EU", value: "EU" },
-  { label: "AS", value: "AS" },
-  { label: "AM", value: "AM" },
-];
-
-const dataCenterOptions: Record<string, { label: string; value: string }[]> = {
-  EU: [
-    { label: "WK", value: "WK" },
-    { label: "RH", value: "RH" },
-  ],
-  AS: [
-    { label: "SDC", value: "SDC" },
-    { label: "TDC", value: "TDC" },
-  ],
-  AM: [
-    { label: "PSC", value: "PSC" },
-  ],
-};
+import { useLanguage } from "../../../contexts/LanguageContext";
+import { useLocalizedText } from "../../../contexts/LanguageContext";
+import FormField from "../../../components/FormField";
+import { getFormConfig, validateForm, FieldConfig } from "../../../lib/i18n";
 
 // DNS检测状态类型
 type DnsCheckStatus = 'idle' | 'checking' | 'success' | 'error' | 'warning';
@@ -74,14 +48,49 @@ interface ConnectionTestResult {
   error?: string;
 }
 
-function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any; handleChange: (idx: number, field: string, value: any) => void }) {
+// 后端服务器接口
+interface Backend {
+  hostname: string;
+  port: string;
+  protocol: string;
+  region: string;
+  dataCenter: string;
+  enabled: boolean;
+  rewriteHost?: boolean;
+  webProxyEnabled?: boolean;
+  proxyHost?: string;
+  proxyPort?: string;
+  proxyUsername?: string;
+  proxyPassword?: string;
+}
+
+// 组件接口
+interface BackendsTabProps {
+  formData: {
+    backends: Backend[];
+  };
+  setFormData: React.Dispatch<React.SetStateAction<any>>;
+  showValidation?: boolean;
+}
+
+function BackendForm({ 
+  idx, 
+  backend, 
+  handleChange, 
+  formConfig,
+  language,
+  showValidation 
+}: { 
+  idx: number; 
+  backend: Backend; 
+  handleChange: (idx: number, field: string, value: any) => void;
+  formConfig: any;
+  language: string;
+  showValidation: boolean;
+}) {
   const [dnsCheckResult, setDnsCheckResult] = useState<DnsCheckResult>({ status: 'idle', message: '' });
   const [connectionTestResult, setConnectionTestResult] = useState<ConnectionTestResult>({ status: 'idle', message: '' });
   const [showDnsDetails, setShowDnsDetails] = useState(false);
-
-  const handleRegionChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    handleChange(idx, "region", e.target.value);
-  };
 
   // DNS检测函数
   const checkDns = async (hostname: string) => {
@@ -202,142 +211,42 @@ function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any
       case 'warning':
         return <WarningIcon color="warning" fontSize="small" />;
       default:
-        return <InfoIcon color="action" fontSize="small" />;
+        return <InfoIcon color="info" fontSize="small" />;
     }
   };
 
   // 获取状态颜色
   const getStatusColor = (status: DnsCheckStatus | 'idle' | 'testing' | 'success' | 'error') => {
     switch (status) {
-      case 'checking':
-      case 'testing':
-        return 'info';
       case 'success':
         return 'success';
       case 'error':
         return 'error';
       case 'warning':
         return 'warning';
+      case 'checking':
+      case 'testing':
+        return 'info';
       default:
         return 'default';
     }
   };
 
   return (
-    <Box sx={{ p: 2, border: '1px solid', borderColor: 'grey.300', borderRadius: 2, mb: 2 }}>
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="subtitle1" fontWeight={600}>
-          后端服务器 #{idx + 1}
-        </Typography>
-        <Box display="flex" gap={1}>
-          <Tooltip title="DNS检测">
-            <IconButton
-              size="small"
-              onClick={() => checkDns(backend.hostname)}
-              disabled={!backend.hostname}
-            >
-              <NetworkCheckIcon />
-            </IconButton>
-          </Tooltip>
-          <Tooltip title="连接测试">
-            <IconButton
-              size="small"
-              onClick={() => testConnection(backend.hostname, backend.port, backend.protocol)}
-              disabled={!backend.hostname || !backend.port || !backend.protocol}
-            >
-              <CheckCircleIcon />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      <Box display="flex" gap={2} flexWrap="wrap">
-        <TextField
-          label="Hostname *"
-          required
-          value={backend.hostname || ""}
-          onChange={e => handleChange(idx, "hostname", e.target.value)}
-          sx={{ minWidth: 200, flex: 1 }}
-        />
-        <TextField
-          label="Port *"
-          required
-          type="number"
-          value={backend.port || ""}
-          onChange={e => handleChange(idx, "port", e.target.value)}
-          sx={{ width: 100 }}
-        />
-        <TextField
-          select
-          label="Protocol *"
-          required
-          value={backend.protocol || ""}
-          onChange={e => handleChange(idx, "protocol", e.target.value)}
-          sx={{ width: 120 }}
-        >
-          {protocols.map(protocol => (
-            <MenuItem key={protocol.value} value={protocol.value}>
-              {protocol.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label="Region"
-          value={backend.region || ""}
-          onChange={handleRegionChange}
-          sx={{ width: 120 }}
-        >
-          {regions.map(region => (
-            <MenuItem key={region.value} value={region.value}>
-              {region.label}
-            </MenuItem>
-          ))}
-        </TextField>
-        <TextField
-          select
-          label="Data Center"
-          value={backend.dataCenter || ""}
-          onChange={e => handleChange(idx, "dataCenter", e.target.value)}
-          disabled={!backend.region}
-          sx={{ width: 120 }}
-        >
-          {(dataCenterOptions[backend.region] || []).map(dc => (
-            <MenuItem key={dc.value} value={dc.value}>
-              {dc.label}
-            </MenuItem>
-          ))}
-        </TextField>
-      </Box>
-
-      <Box display="flex" gap={2} mt={2} flexWrap="wrap">
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={backend.enabled !== false}
-              onChange={e => handleChange(idx, "enabled", e.target.checked)}
-            />
-          }
-          label="启用"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={backend.rewriteHost || false}
-              onChange={e => handleChange(idx, "rewriteHost", e.target.checked)}
-            />
-          }
-          label="重写Host"
-        />
-        <FormControlLabel
-          control={
-            <Checkbox
-              checked={backend.webProxyEnabled || false}
-              onChange={e => handleChange(idx, "webProxyEnabled", e.target.checked)}
-            />
-          }
-          label="Web Proxy"
-        />
+    <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 2, p: 2, mb: 2 }}>
+      <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: 2, flexWrap: 'wrap' }}>
+        {/* 使用FormField组件渲染字段 */}
+        {formConfig?.fields?.map((field: FieldConfig) => (
+          <FormField
+            key={field.key}
+            field={field}
+            value={backend[field.key as keyof Backend] || ''}
+            onChange={(value) => handleChange(idx, field.key, value)}
+            language={language}
+            allValues={backend}
+            showValidation={showValidation}
+          />
+        ))}
       </Box>
 
       {/* DNS检测结果 */}
@@ -399,13 +308,30 @@ function BackendForm({ idx, backend, handleChange }: { idx: number; backend: any
   );
 }
 
-export default function BackendsTab() {
-  const { formData, setFormData } = useFormData();
-  const formConfig = useFormConfig();
-  const { labels, options, validation } = formConfig.backends || {};
+export default function BackendsTab({ formData, setFormData, showValidation = false }: BackendsTabProps) {
+  const { getLabel, getMessage } = useLocalizedText();
+  const { language, metaInfo } = useLanguage();
+  
+  // 获取表单配置
+  const formConfig = metaInfo ? getFormConfig(metaInfo, 'gateway-mapping', 'backends') : null;
 
   // 初始化backends数组
-  const backends = formData.backends && formData.backends.length > 0 ? formData.backends : [{ hostname: "", port: "", protocol: "", region: "", dataCenter: "", enabled: true, rewriteHost: false, webProxyEnabled: false, proxyHost: "", proxyPort: "", proxyUsername: "", proxyPassword: "" }];
+  const backends = formData.backends && formData.backends.length > 0 
+    ? formData.backends 
+    : [{ 
+        hostname: "", 
+        port: "", 
+        protocol: "", 
+        region: "", 
+        dataCenter: "", 
+        enabled: true, 
+        rewriteHost: false, 
+        webProxyEnabled: false, 
+        proxyHost: "", 
+        proxyPort: "", 
+        proxyUsername: "", 
+        proxyPassword: "" 
+      }];
 
   const handleChange = (idx: number, field: string, value: any) => {
     const arr = [...backends];
@@ -421,19 +347,74 @@ export default function BackendsTab() {
   };
 
   const handleAdd = () => {
-    setFormData((prev: any) => ({ ...prev, backends: [...backends, { hostname: "", port: "", protocol: "", region: "", dataCenter: "", enabled: true, rewriteHost: false, webProxyEnabled: false, proxyHost: "", proxyPort: "", proxyUsername: "", proxyPassword: "" }] }));
+    setFormData((prev: any) => ({ 
+      ...prev, 
+      backends: [...backends, { 
+        hostname: "", 
+        port: "", 
+        protocol: "", 
+        region: "", 
+        dataCenter: "", 
+        enabled: true, 
+        rewriteHost: false, 
+        webProxyEnabled: false, 
+        proxyHost: "", 
+        proxyPort: "", 
+        proxyUsername: "", 
+        proxyPassword: "" 
+      }] 
+    }));
   };
 
   const handleRemove = (idx: number) => {
     const arr = [...backends];
     arr.splice(idx, 1);
-    setFormData((prev: any) => ({ ...prev, backends: arr.length ? arr : [{ hostname: "", port: "", protocol: "", region: "", dataCenter: "", enabled: true, rewriteHost: false, webProxyEnabled: false, proxyHost: "", proxyPort: "", proxyUsername: "", proxyPassword: "" }] }));
+    setFormData((prev: any) => ({ 
+      ...prev, 
+      backends: arr.length ? arr : [{ 
+        hostname: "", 
+        port: "", 
+        protocol: "", 
+        region: "", 
+        dataCenter: "", 
+        enabled: true, 
+        rewriteHost: false, 
+        webProxyEnabled: false, 
+        proxyHost: "", 
+        proxyPort: "", 
+        proxyUsername: "", 
+        proxyPassword: "" 
+      }] 
+    }));
   };
+
+  // 验证表单
+  const validationErrors: string[] = [];
+  if (showValidation && formConfig) {
+    backends.forEach((backend, index) => {
+      const errors = validateForm(formConfig, backend, language);
+      validationErrors.push(...errors.map(error => `后端服务器 ${index + 1}: ${error.message}`));
+    });
+  }
+
+  if (!formConfig) {
+    return (
+      <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
+        <Typography variant="h6" fontWeight={600} gutterBottom>
+          {getLabel('backends')}
+        </Typography>
+        <Divider sx={{ mb: 2 }} />
+        <Alert severity="info">
+          {getMessage('loading')}
+        </Alert>
+      </Paper>
+    );
+  }
 
   return (
     <Paper elevation={1} sx={{ p: 3, borderRadius: 2 }}>
       <Typography variant="h6" fontWeight={600} gutterBottom>
-        {labels?.title || "Backend Servers"}
+        {getLabel('backends')}
       </Typography>
       <Divider sx={{ mb: 2 }} />
       
@@ -443,6 +424,9 @@ export default function BackendsTab() {
             idx={idx}
             backend={backend}
             handleChange={handleChange}
+            formConfig={formConfig}
+            language={language}
+            showValidation={showValidation}
           />
           {backends.length > 1 && (
             <Box display="flex" justifyContent="flex-end" mb={2}>
@@ -464,13 +448,23 @@ export default function BackendsTab() {
           startIcon={<AddCircleOutlineIcon />}
           onClick={handleAdd}
         >
-          {labels?.addBackend || "Add Backend Server"}
+          {getLabel('addBackend')}
         </Button>
       </Box>
       
       <Alert severity="info" sx={{ mt: 2 }}>
-        {labels?.tip || "Configure one or more backend servers for load balancing."}
+        {getLabel('backendsTip')}
       </Alert>
+
+      {showValidation && validationErrors.length > 0 && (
+        <Alert severity="error" sx={{ mt: 2 }}>
+          <Typography variant="body2" component="div">
+            {validationErrors.map((error, index) => (
+              <div key={index}>• {error}</div>
+            ))}
+          </Typography>
+        </Alert>
+      )}
     </Paper>
   );
 } 
