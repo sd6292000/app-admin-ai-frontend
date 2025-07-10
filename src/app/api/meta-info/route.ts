@@ -16,7 +16,7 @@ interface FieldConfig {
   defaultValue?: any;
   placeholder?: Record<string, string>;
   validation?: ValidationRule[];
-  options?: Array<{ label: Record<string, string>; value: string }>;
+  options?: Array<{ label: Record<string, string>; value: string; parentValue?: string }>;
   dependencies?: string[]; // 依赖的其他字段
   conditional?: {
     field: string;
@@ -179,12 +179,17 @@ const englishMetaInfo: MetaInformation = {
               type: 'select',
               required: true,
               dependencies: ['region'],
+              conditional: {
+                field: 'region',
+                value: '',
+                operator: 'not_equals'
+              },
               options: [
-                { label: { en: 'WK', zh: 'WK' }, value: 'WK' },
-                { label: { en: 'RH', zh: 'RH' }, value: 'RH' },
-                { label: { en: 'SDC', zh: 'SDC' }, value: 'SDC' },
-                { label: { en: 'TDC', zh: 'TDC' }, value: 'TDC' },
-                { label: { en: 'PSC', zh: 'PSC' }, value: 'PSC' }
+                { label: { en: 'WK', zh: 'WK' }, value: 'WK', parentValue: 'EU' },
+                { label: { en: 'RH', zh: 'RH' }, value: 'RH', parentValue: 'EU' },
+                { label: { en: 'SDC', zh: 'SDC' }, value: 'SDC', parentValue: 'AS' },
+                { label: { en: 'TDC', zh: 'TDC' }, value: 'TDC', parentValue: 'AS' },
+                { label: { en: 'PSC', zh: 'PSC' }, value: 'PSC', parentValue: 'AM' }
               ]
             },
             {
@@ -575,7 +580,15 @@ const englishMetaInfo: MetaInformation = {
       addSecurityHeaders: { en: 'Add Security Headers', zh: '添加安全请求头' },
       headersTip: { en: 'Configure request and response headers for the gateway', zh: '为网关配置请求和响应头' },
       cookieTip: { en: 'Configure cookie handling strategy for the gateway', zh: '为网关配置Cookie处理策略' },
-      cspTip: { en: 'Configure Content Security Policy to enhance security', zh: '配置内容安全策略以增强安全性' }
+      cspTip: { en: 'Configure Content Security Policy to enhance security', zh: '配置内容安全策略以增强安全性' },
+      validationErrors: { en: 'Validation Errors', zh: '验证错误' },
+      basic: { en: 'Basic Configuration', zh: '基础配置' },
+      backends: { en: 'Backend Servers', zh: '后端服务器' },
+      cookies: { en: 'Cookies', zh: 'Cookies' },
+      headers: { en: 'Headers', zh: '请求头' },
+      responseBodyDecorator: { en: 'Response Body Decorator', zh: '响应体装饰器' },
+      limiters: { en: 'Limiters', zh: '限制器' },
+      csp: { en: 'Content Security Policy', zh: '内容安全策略' }
     },
     messages: {
       saveSuccess: { en: 'Saved successfully', zh: '保存成功' },

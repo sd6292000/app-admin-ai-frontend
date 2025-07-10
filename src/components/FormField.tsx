@@ -52,7 +52,6 @@ export default function FormField({
 
   // 检查字段是否应该显示
   const shouldShow = shouldShowField(field, allValues);
-  if (!shouldShow) return null;
 
   // 验证字段值
   useEffect(() => {
@@ -63,6 +62,9 @@ export default function FormField({
       setValidationError(null);
     }
   }, [field, value, language, allValues, showValidation]);
+
+  // 如果字段不应该显示，返回null（在Hooks之后）
+  if (!shouldShow) return null;
 
   const hasError = showValidation && (validationError || externalError);
   const errorMessage = externalError || validationError;
@@ -117,11 +119,21 @@ export default function FormField({
             onChange={(e) => handleChange(e.target.value)}
             label={getFieldLabel(field, language)}
           >
-            {field.options?.map((option) => (
-              <MenuItem key={option.value} value={option.value}>
-                {getOptionLabel(option, language)}
-              </MenuItem>
-            ))}
+            {field.options?.map((option) => {
+              // 检查级联条件
+              if (option.parentValue && field.dependencies) {
+                const parentField = field.dependencies[0]; // 假设只有一个依赖字段
+                const parentValue = allValues[parentField];
+                if (parentValue !== option.parentValue) {
+                  return null; // 不显示不匹配的选项
+                }
+              }
+              return (
+                <MenuItem key={option.value} value={option.value}>
+                  {getOptionLabel(option, language)}
+                </MenuItem>
+              );
+            }).filter(Boolean)}
           </Select>
           {hasError && <FormHelperText>{errorMessage}</FormHelperText>}
         </FormControl>

@@ -130,6 +130,8 @@ function GatewayMappingPage() {
   const [openDialog, setOpenDialog] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<SubmitStatus>('idle');
   const [errorMessage, setErrorMessage] = useState<string>('');
+  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
+  const [showValidation, setShowValidation] = useState(false);
 
   // 获取页面配置
   const pageConfig = metaInfo ? getPageConfig(metaInfo, 'gateway-mapping') : null;
@@ -139,8 +141,74 @@ function GatewayMappingPage() {
     setTab(newValue);
   }
 
+  // 验证所有表单
+  function validateAllForms() {
+    if (!metaInfo) return false;
+    
+    const errors: Record<string, string[]> = {};
+    let hasErrors = false;
+
+    // 验证每个tab的表单
+    const forms = ['basic', 'backends', 'cookies', 'headers', 'responseBodyDecorator', 'limiters', 'csp'];
+    
+    forms.forEach(formKey => {
+      const formConfig = getFormConfig(metaInfo, 'gateway-mapping', formKey);
+      if (formConfig) {
+        const formErrors = validateForm(formConfig, formData[formKey as keyof FormDataType], language);
+        if (formErrors.length > 0) {
+          errors[formKey] = formErrors.map(error => error.message);
+          hasErrors = true;
+        }
+      }
+    });
+
+    // 特殊验证：headers和cookies的重复name检查
+    const allHeaders = [...(formData.headers?.request || []), ...(formData.headers?.response || [])];
+    const headerNames = allHeaders.map(h => h.name).filter(Boolean);
+    const uniqueHeaderNames = new Set(headerNames);
+    if (headerNames.length !== uniqueHeaderNames.size) {
+      errors.headers = [...(errors.headers || []), 'Header names must be unique'];
+      hasErrors = true;
+    }
+
+    const cookieExceptions = formData.cookies?.exceptions || [];
+    const cookieNames = cookieExceptions.map(c => c.cookieName).filter(Boolean);
+    const uniqueCookieNames = new Set(cookieNames);
+    if (cookieNames.length !== uniqueCookieNames.size) {
+      errors.cookies = [...(errors.cookies || []), 'Cookie names must be unique'];
+      hasErrors = true;
+    }
+
+    setValidationErrors(errors);
+    setShowValidation(true);
+    
+    return !hasErrors;
+  }
+
   // 提交按钮点击
   function handleSubmit() {
+    // 先验证所有表单
+    if (!validateAllForms()) {
+      // 如果有错误，切换到第一个有错误的tab
+      const errorTabs = Object.keys(validationErrors);
+      if (errorTabs.length > 0) {
+        const tabMap: Record<string, number> = {
+          'basic': 0,
+          'backends': 1,
+          'cookies': 2,
+          'headers': 3,
+          'responseBodyDecorator': 4,
+          'limiters': 5,
+          'csp': 6
+        };
+        const firstErrorTab = errorTabs[0];
+        if (tabMap[firstErrorTab] !== undefined) {
+          setTab(tabMap[firstErrorTab]);
+        }
+      }
+      return;
+    }
+    
     setOpenDialog(true);
   }
 
@@ -159,6 +227,8 @@ function GatewayMappingPage() {
 
       if (response.ok) {
         setSubmitStatus('success');
+        setShowValidation(false); // 提交成功后清除验证状态
+        setValidationErrors({});
       } else {
         const errorText = await response.text();
         setErrorMessage(errorText);
@@ -230,14 +300,35 @@ function GatewayMappingPage() {
 
           {/* 标签页内容 */}
           <Box sx={{ p: 3 }}>
-            {tab === 0 && <BasicTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 1 && <BackendsTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 2 && <CookiesTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
-            {tab === 6 && <CspTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 0 && <BasicTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 1 && <BackendsTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 2 && <CookiesTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
+            {tab === 6 && <CspTab formData={formData} setFormData={setFormData} showValidation={showValidation} />}
           </Box>
+
+          {/* 验证错误显示 */}
+          {showValidation && Object.keys(validationErrors).length > 0 && (
+            <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider', bgcolor: 'error.light' }}>
+              <Typography variant="h6" color="error" gutterBottom>
+                {getLabel('validationErrors')}
+              </Typography>
+              {Object.entries(validationErrors).map(([formKey, errors]) => (
+                <Box key={formKey} sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" color="error">
+                    {getLabel(formKey)}:
+                  </Typography>
+                  {errors.map((error, index) => (
+                    <Typography key={index} variant="body2" color="error" sx={{ ml: 2 }}>
+                      • {error}
+                    </Typography>
+                  ))}
+                </Box>
+              ))}
+            </Box>
+          )}
 
           {/* 提交按钮 */}
           <Box sx={{ p: 3, borderTop: 1, borderColor: 'divider' }}>

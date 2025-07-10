@@ -25,7 +25,7 @@ export interface FieldConfig {
   defaultValue?: any;
   placeholder?: Record<string, string>;
   validation?: ValidationRule[];
-  options?: Array<{ label: Record<string, string>; value: string }>;
+  options?: Array<{ label: Record<string, string>; value: string; parentValue?: string }>;
   dependencies?: string[];
   conditional?: {
     field: string;
@@ -320,7 +320,7 @@ export function getFieldLabel(
 
 // 获取选项的标签文本
 export function getOptionLabel(
-  option: { label: Record<string, string>; value: string },
+  option: { label: Record<string, string>; value: string; parentValue?: string },
   language: Language
 ): string {
   return getLocalizedText(option.label, language);

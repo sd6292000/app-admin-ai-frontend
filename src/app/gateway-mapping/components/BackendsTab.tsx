@@ -336,13 +336,23 @@ export default function BackendsTab({ formData, setFormData, showValidation = fa
   const handleChange = (idx: number, field: string, value: any) => {
     const arr = [...backends];
     arr[idx][field] = value;
-    if (field === "region") arr[idx]["dataCenter"] = "";
+    
+    // 根据meta info配置处理级联关系
+    if (formConfig) {
+      const dataCenterField = formConfig.fields.find(f => f.key === 'dataCenter');
+      if (field === "region" && dataCenterField?.dependencies?.includes('region')) {
+        arr[idx]["dataCenter"] = ""; // 清空依赖字段
+      }
+    }
+    
+    // 处理代理相关字段
     if (field === "webProxyEnabled" && !value) {
       arr[idx].proxyHost = "";
       arr[idx].proxyPort = "";
       arr[idx].proxyUsername = "";
       arr[idx].proxyPassword = "";
     }
+    
     setFormData((prev: any) => ({ ...prev, backends: arr }));
   };
 
