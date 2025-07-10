@@ -180,6 +180,12 @@ export function validateField(
             allValues.maxPerMinute ||
             (allValues.allowedMethods && allValues.allowedMethods.length > 0)
           );
+        } else if (rule.value === 'unique_header_name') {
+          // 检查header name是否唯一
+          isValid = true; // 这个验证需要在表单级别进行
+        } else if (rule.value === 'unique_cookie_name') {
+          // 检查cookie name是否唯一
+          isValid = true; // 这个验证需要在表单级别进行
         }
         break;
     }
@@ -221,14 +227,44 @@ export function validateForm(
   if (form.validation) {
     for (const rule of form.validation) {
       if (rule.type === 'custom') {
-        const error = validateField(
-          { key: 'form', validation: [rule] } as FieldConfig,
-          values,
-          language,
-          values
-        );
-        if (error) {
-          errors.push(error);
+        let isValid = true;
+        
+        if (rule.value === 'unique_header_names') {
+          // 检查headers中的name是否唯一
+          const headers = values.request || values.response || [];
+          const names = headers.map((h: any) => h.name).filter(Boolean);
+          const uniqueNames = new Set(names);
+          isValid = names.length === uniqueNames.size;
+        } else if (rule.value === 'unique_cookie_names') {
+          // 检查cookies中的name是否唯一
+          const exceptions = values.exceptions || [];
+          const names = exceptions.map((c: any) => c.cookieName).filter(Boolean);
+          const uniqueNames = new Set(names);
+          isValid = names.length === uniqueNames.size;
+        } else {
+          // 其他自定义验证
+          const error = validateField(
+            { key: 'form', validation: [rule] } as FieldConfig,
+            values,
+            language,
+            values
+          );
+          if (error) {
+            errors.push(error);
+          }
+          continue;
+        }
+        
+        if (!isValid) {
+          errors.push({
+            field: 'form',
+            message: getLocalizedText(
+              { en: rule.message, zh: rule.message },
+              language,
+              rule.message
+            ),
+            type: rule.type
+          });
         }
       }
     }

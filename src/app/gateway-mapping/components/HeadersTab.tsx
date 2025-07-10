@@ -19,7 +19,7 @@ import SecurityIcon from '@mui/icons-material/Security';
 import { useLanguage } from "../../../contexts/LanguageContext";
 import { useLocalizedText } from "../../../contexts/LanguageContext";
 import FormField from "../../../components/FormField";
-import { getFormConfig, validateForm } from "../../../lib/i18n";
+import { getFormConfig, validateForm, Language } from "../../../lib/i18n";
 
 // 请求头接口
 interface Header {
@@ -60,7 +60,7 @@ function HeaderForm({
   onChange: (field: keyof Header, value: any) => void; 
   onRemove: () => void; 
   showRemove: boolean;
-  language: string;
+  language: Language;
   showValidation: boolean;
 }) {
   return (
@@ -211,6 +211,14 @@ export default function HeadersTab({ formData, setFormData, showValidation = fal
   if (showValidation && formConfig) {
     const errors = validateForm(formConfig, formData.headers, language);
     validationErrors.push(...errors.map(error => error.message));
+    
+    // 检查重复的header names
+    const allHeaders = [...requestHeaders, ...responseHeaders];
+    const names = allHeaders.map(h => h.name).filter(Boolean);
+    const uniqueNames = new Set(names);
+    if (names.length !== uniqueNames.size) {
+      validationErrors.push(getMessage('duplicateHeaderNames'));
+    }
   }
 
   if (!formConfig) {

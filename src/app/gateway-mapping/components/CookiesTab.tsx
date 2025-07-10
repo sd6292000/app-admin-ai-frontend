@@ -6,7 +6,7 @@ import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { useLanguage } from "../../../contexts/LanguageContext";
 import { useLocalizedText } from "../../../contexts/LanguageContext";
 import FormField from "../../../components/FormField";
-import { getFormConfig, validateForm } from "../../../lib/i18n";
+import { getFormConfig, validateForm, Language } from "../../../lib/i18n";
 
 // Cookie异常接口
 interface CookieException {
@@ -89,6 +89,14 @@ export default function CookiesTab({ formData, setFormData, showValidation = fal
   if (showValidation && formConfig) {
     const errors = validateForm(formConfig, formData.cookies, language);
     validationErrors.push(...errors.map(error => error.message));
+    
+    // 检查重复的cookie names
+    const exceptions = formData.cookies?.exceptions || [];
+    const names = exceptions.map(e => e.cookieName).filter(Boolean);
+    const uniqueNames = new Set(names);
+    if (names.length !== uniqueNames.size) {
+      validationErrors.push(getMessage('duplicateCookieNames'));
+    }
   }
 
   if (!formConfig) {

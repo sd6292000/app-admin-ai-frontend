@@ -200,44 +200,38 @@ const englishMetaInfo: MetaInformation = {
           label: { en: 'Headers', zh: '请求头' },
           fields: [
             {
-              key: 'request',
-              label: { en: 'Request Headers', zh: '请求头' },
-              type: 'multiselect',
-              options: [
-                { label: { en: 'Authorization', zh: '授权' }, value: 'Authorization' },
-                { label: { en: 'Content-Type', zh: '内容类型' }, value: 'Content-Type' },
-                { label: { en: 'User-Agent', zh: '用户代理' }, value: 'User-Agent' }
-              ]
-            },
-            {
-              key: 'response',
-              label: { en: 'Response Headers', zh: '响应头' },
-              type: 'multiselect',
-              options: [
-                { label: { en: 'Cache-Control', zh: '缓存控制' }, value: 'Cache-Control' },
-                { label: { en: 'Content-Security-Policy', zh: '内容安全策略' }, value: 'Content-Security-Policy' },
-                { label: { en: 'X-Frame-Options', zh: '框架选项' }, value: 'X-Frame-Options' }
-              ]
-            },
-            {
               key: 'name',
-              label: { en: 'Name', zh: '名称' },
+              label: { en: 'Header Name', zh: '请求头名称' },
               type: 'text',
               required: true,
-              placeholder: { en: 'Header name', zh: '请求头名称' }
+              placeholder: { en: 'Enter header name', zh: '请输入请求头名称' },
+              validation: [
+                { type: 'required', message: 'Header name is required' },
+                { type: 'custom', message: 'Header name must be unique', value: 'unique_header_name' }
+              ]
             },
             {
               key: 'value',
-              label: { en: 'Value', zh: '值' },
+              label: { en: 'Header Value', zh: '请求头值' },
               type: 'textarea',
               required: true,
-              placeholder: { en: 'Header value', zh: '请求头值' }
+              placeholder: { en: 'Enter header value', zh: '请输入请求头值' },
+              validation: [
+                { type: 'required', message: 'Header value is required' }
+              ]
             },
             {
               key: 'override',
               label: { en: 'Override', zh: '覆盖' },
-              type: 'checkbox',
+              type: 'switch',
               defaultValue: false
+            }
+          ],
+          validation: [
+            {
+              type: 'custom',
+              message: 'Header names must be unique',
+              value: 'unique_header_names'
             }
           ]
         },
@@ -261,10 +255,11 @@ const englishMetaInfo: MetaInformation = {
               label: { en: 'Cookie Name', zh: 'Cookie名称' },
               type: 'text',
               required: true,
-              placeholder: { en: 'Cookie name', zh: 'Cookie名称' },
+              placeholder: { en: 'Enter cookie name', zh: '请输入Cookie名称' },
               validation: [
                 { type: 'required', message: 'Cookie name is required' },
-                { type: 'pattern', value: '^[a-zA-Z0-9_-]+$', message: 'Invalid cookie name format' }
+                { type: 'pattern', value: '^[!#$%&\'*+\\-.^_`|~0-9a-zA-Z]+$', message: 'Invalid cookie name format (RFC6265)' },
+                { type: 'custom', message: 'Cookie name must be unique', value: 'unique_cookie_name' }
               ]
             },
             {
@@ -276,6 +271,13 @@ const englishMetaInfo: MetaInformation = {
                 { label: { en: 'Passthrough', zh: '透传' }, value: 'passthrough' },
                 { label: { en: 'Persist', zh: '持久化' }, value: 'persist' }
               ]
+            }
+          ],
+          validation: [
+            {
+              type: 'custom',
+              message: 'Cookie names must be unique',
+              value: 'unique_cookie_names'
             }
           ]
         },
@@ -341,6 +343,93 @@ const englishMetaInfo: MetaInformation = {
               type: 'custom',
               message: 'At least one limiter must be set',
               value: 'at_least_one_limiter'
+            }
+          ]
+        },
+        {
+          key: 'csp',
+          label: { en: 'Content Security Policy', zh: '内容安全策略' },
+          fields: [
+            {
+              key: 'enabled',
+              label: { en: 'Enable CSP', zh: '启用CSP' },
+              type: 'switch',
+              defaultValue: false
+            },
+            {
+              key: 'preset',
+              label: { en: 'CSP Preset', zh: 'CSP预设' },
+              type: 'select',
+              options: [
+                { label: { en: 'Strict', zh: '严格' }, value: 'strict' },
+                { label: { en: 'Moderate', zh: '中等' }, value: 'moderate' },
+                { label: { en: 'Relaxed', zh: '宽松' }, value: 'relaxed' },
+                { label: { en: 'Custom', zh: '自定义' }, value: 'custom' }
+              ],
+              conditional: {
+                field: 'enabled',
+                value: true,
+                operator: 'equals'
+              }
+            },
+            {
+              key: 'customValue',
+              label: { en: 'Custom CSP Value', zh: '自定义CSP值' },
+              type: 'textarea',
+              placeholder: { en: 'Enter custom CSP value', zh: '请输入自定义CSP值' },
+              conditional: {
+                field: 'preset',
+                value: 'custom',
+                operator: 'equals'
+              }
+            },
+            {
+              key: 'directives',
+              label: { en: 'CSP Directives', zh: 'CSP指令' },
+              type: 'multiselect',
+              options: [
+                { label: { en: 'default-src', zh: 'default-src' }, value: 'default-src' },
+                { label: { en: 'script-src', zh: 'script-src' }, value: 'script-src' },
+                { label: { en: 'style-src', zh: 'style-src' }, value: 'style-src' },
+                { label: { en: 'img-src', zh: 'img-src' }, value: 'img-src' },
+                { label: { en: 'font-src', zh: 'font-src' }, value: 'font-src' },
+                { label: { en: 'connect-src', zh: 'connect-src' }, value: 'connect-src' },
+                { label: { en: 'media-src', zh: 'media-src' }, value: 'media-src' },
+                { label: { en: 'object-src', zh: 'object-src' }, value: 'object-src' },
+                { label: { en: 'frame-src', zh: 'frame-src' }, value: 'frame-src' },
+                { label: { en: 'worker-src', zh: 'worker-src' }, value: 'worker-src' },
+                { label: { en: 'manifest-src', zh: 'manifest-src' }, value: 'manifest-src' },
+                { label: { en: 'base-uri', zh: 'base-uri' }, value: 'base-uri' },
+                { label: { en: 'form-action', zh: 'form-action' }, value: 'form-action' },
+                { label: { en: 'frame-ancestors', zh: 'frame-ancestors' }, value: 'frame-ancestors' },
+                { label: { en: 'upgrade-insecure-requests', zh: 'upgrade-insecure-requests' }, value: 'upgrade-insecure-requests' },
+                { label: { en: 'block-all-mixed-content', zh: 'block-all-mixed-content' }, value: 'block-all-mixed-content' }
+              ],
+              conditional: {
+                field: 'enabled',
+                value: true,
+                operator: 'equals'
+              }
+            },
+            {
+              key: 'values',
+              label: { en: 'CSP Values', zh: 'CSP值' },
+              type: 'multiselect',
+              options: [
+                { label: { en: "'self'", zh: "'self'" }, value: "'self'" },
+                { label: { en: "'unsafe-inline'", zh: "'unsafe-inline'" }, value: "'unsafe-inline'" },
+                { label: { en: "'unsafe-eval'", zh: "'unsafe-eval'" }, value: "'unsafe-eval'" },
+                { label: { en: "'none'", zh: "'none'" }, value: "'none'" },
+                { label: { en: 'data:', zh: 'data:' }, value: 'data:' },
+                { label: { en: 'https:', zh: 'https:' }, value: 'https:' },
+                { label: { en: 'http:', zh: 'http:' }, value: 'http:' },
+                { label: { en: '*', zh: '*' }, value: '*' }
+              ],
+              conditional: {
+                field: 'enabled',
+                value: true,
+                operator: 'equals'
+              }
             }
           ]
         },
@@ -474,7 +563,19 @@ const englishMetaInfo: MetaInformation = {
       inactive: { en: 'Inactive', zh: '非激活' },
       draft: { en: 'Draft', zh: '草稿' },
       published: { en: 'Published', zh: '已发布' },
-      archived: { en: 'Archived', zh: '已归档' }
+      archived: { en: 'Archived', zh: '已归档' },
+      requestHeaders: { en: 'Request Headers', zh: '请求头' },
+      responseHeaders: { en: 'Response Headers', zh: '响应头' },
+      securityHeaders: { en: 'Security Headers', zh: '安全请求头' },
+      cookieExceptions: { en: 'Cookie Exceptions', zh: 'Cookie异常' },
+      cspAdvanced: { en: 'Advanced CSP Configuration', zh: '高级CSP配置' },
+      cspPreview: { en: 'CSP Preview', zh: 'CSP预览' },
+      cspNoValue: { en: 'No CSP value generated', zh: '未生成CSP值' },
+      addCspToHeaders: { en: 'Add CSP to Response Headers', zh: '将CSP添加到响应头' },
+      addSecurityHeaders: { en: 'Add Security Headers', zh: '添加安全请求头' },
+      headersTip: { en: 'Configure request and response headers for the gateway', zh: '为网关配置请求和响应头' },
+      cookieTip: { en: 'Configure cookie handling strategy for the gateway', zh: '为网关配置Cookie处理策略' },
+      cspTip: { en: 'Configure Content Security Policy to enhance security', zh: '配置内容安全策略以增强安全性' }
     },
     messages: {
       saveSuccess: { en: 'Saved successfully', zh: '保存成功' },
@@ -486,7 +587,15 @@ const englishMetaInfo: MetaInformation = {
       validationError: { en: 'Validation error', zh: '验证错误' },
       unsavedChanges: { en: 'You have unsaved changes', zh: '您有未保存的更改' },
       confirmDelete: { en: 'Are you sure you want to delete?', zh: '您确定要删除吗？' },
-      confirmLeave: { en: 'Are you sure you want to leave?', zh: '您确定要离开吗？' }
+      confirmLeave: { en: 'Are you sure you want to leave?', zh: '您确定要离开吗？' },
+      duplicateHeaderNames: { en: 'Header names must be unique', zh: '请求头名称必须唯一' },
+      duplicateCookieNames: { en: 'Cookie names must be unique', zh: 'Cookie名称必须唯一' },
+      loading: { en: 'Loading...', zh: '加载中...' },
+      submitting: { en: 'Submitting...', zh: '提交中...' },
+      submitSuccess: { en: 'Submitted successfully', zh: '提交成功' },
+      submitError: { en: 'Submit failed', zh: '提交失败' },
+      confirmSubmit: { en: 'Confirm Submit', zh: '确认提交' },
+      confirmSubmitMessage: { en: 'Are you sure you want to submit this configuration?', zh: '您确定要提交此配置吗？' }
     },
     validation: {
       required: { en: 'This field is required', zh: '此字段为必填项' },

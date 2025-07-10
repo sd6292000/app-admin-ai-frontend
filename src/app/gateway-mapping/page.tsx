@@ -7,6 +7,7 @@ import CookiesTab from "./components/CookiesTab";
 import HeadersTab from "./components/HeadersTab";
 import ResponseBodyDecoratorTab from "./components/ResponseBodyDecoratorTab";
 import LimitersTab from "./components/LimitersTab";
+import CspTab from "./components/CspTab";
 import LanguageSwitcher from "../../components/LanguageSwitcher";
 import AssignmentIcon from '@mui/icons-material/Assignment';
 import SettingsEthernetIcon from '@mui/icons-material/SettingsEthernet';
@@ -68,6 +69,13 @@ interface FormDataType {
     staleWhileRevalidateSeconds: number;
     staleIfErrorSeconds: number;
   };
+  csp: {
+    enabled: boolean;
+    preset: 'strict' | 'moderate' | 'relaxed' | 'custom';
+    customValue: string;
+    directives: string[];
+    values: string[];
+  };
 }
 
 // 提交状态类型
@@ -109,6 +117,13 @@ function GatewayMappingPage() {
       etagEnabled: true,
       staleWhileRevalidateSeconds: 0,
       staleIfErrorSeconds: 0
+    },
+    csp: {
+      enabled: false,
+      preset: 'moderate',
+      customValue: '',
+      directives: [],
+      values: []
     }
   });
   
@@ -175,6 +190,7 @@ function GatewayMappingPage() {
     { label: getLabel('headers'), icon: <HttpIcon fontSize="small" /> },
     { label: getLabel('responseBodyDecorator'), icon: <ErrorOutlineIcon fontSize="small" /> },
     { label: getLabel('limiters'), icon: <SecurityIcon fontSize="small" /> },
+    { label: getLabel('csp'), icon: <SecurityIcon fontSize="small" /> },
   ];
 
   if (metaLoading) {
@@ -220,6 +236,7 @@ function GatewayMappingPage() {
             {tab === 3 && <HeadersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
             {tab === 4 && <ResponseBodyDecoratorTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
             {tab === 5 && <LimitersTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
+            {tab === 6 && <CspTab formData={formData} setFormData={setFormData} showValidation={submitStatus === 'error'} />}
           </Box>
 
           {/* 提交按钮 */}
